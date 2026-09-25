@@ -15,6 +15,11 @@ import {
 
 const router = express.Router();
 
+// ---- Public — patients browse doctors without logging in ---
+router.get("/:id", getDoctorById);
+router.get("/:id/available-dates", getAvailableDates);
+router.get("/:id/available-slots", getAvailableSlots);
+
 // Every route below is a doctor managing their OWN profile —
 // authenticate confirms who they are, authorize("doctor") confirms their role.
 router.use(authenticate, authorizeRoles("doctor"));
@@ -27,10 +32,5 @@ router.delete("/me/schedule/:date", deleteScheduleDate);
 
 router.post("/me/schedule/:date/slots", addSlot);
 router.delete("/me/schedule/:date/slots", deleteSlot);
-
-// ---- Public — patients browse doctors without logging in ---
-router.get("/:id", getDoctorById);
-router.get("/:id/available-dates", getAvailableDates);
-router.get("/:id/available-slots", getAvailableSlots);
 
 export default router;

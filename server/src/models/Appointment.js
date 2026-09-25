@@ -25,7 +25,11 @@ const appointmentSchema = new mongoose.Schema(
       fullName: { type: String, required: true },
       mobile: { type: String, required: true },
       age: { type: Number, required: true },
-      gender: { type: String, enum: ["male", "female", "other"], required: true },
+      gender: {
+        type: String,
+        enum: ["male", "female", "other"],
+        required: true,
+      },
       email: { type: String }, // optional, for receipts
     },
 
@@ -49,18 +53,21 @@ const appointmentSchema = new mongoose.Schema(
       default: "pending",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Every appointment must be for a doctor OR a service, never both, never neither
-appointmentSchema.pre("validate", function (next) {
+appointmentSchema.pre("validate", function () {
   if (!this.doctor && !this.service) {
-    return next(new Error("Appointment must reference either a doctor or a service"));
+    return next(
+      new Error("Appointment must reference either a doctor or a service"),
+    );
   }
   if (this.doctor && this.service) {
-    return next(new Error("Appointment cannot reference both a doctor and a service"));
+    return next(
+      new Error("Appointment cannot reference both a doctor and a service"),
+    );
   }
-  next();
 });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
