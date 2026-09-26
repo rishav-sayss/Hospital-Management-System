@@ -236,3 +236,14 @@ export const getAvailableSlots = async (req, res) => {
     res.status(500).json({ message: "Could not fetch slots", error: err.message });
   }
 };
+
+
+// @route  GET /api/doctors  (public — patients browse, admin's "List Doctors" also uses this)
+export const getAllDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find().populate("user", "name email");
+    res.status(200).json({ doctors });
+  } catch (err) {
+    res.status(500).json({ message: "Could not fetch doctors", error: err.message });
+  }
+};

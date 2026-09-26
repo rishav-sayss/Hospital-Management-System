@@ -8,6 +8,7 @@ import {
   deleteScheduleDate,
   addSlot,
   deleteSlot,
+  getAllDoctors,
   getDoctorById,
   getAvailableDates,
   getAvailableSlots,
@@ -16,6 +17,7 @@ import {
 const router = express.Router();
 
 // ---- Public — patients browse doctors without logging in ---
+router.get("/", getAllDoctors);
 router.get("/:id", getDoctorById);
 router.get("/:id/available-dates", getAvailableDates);
 router.get("/:id/available-slots", getAvailableSlots);

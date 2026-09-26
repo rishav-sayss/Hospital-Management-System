@@ -19,12 +19,16 @@ const serviceSchema = new mongoose.Schema(
     category: {
       type: String, // optional grouping, e.g. "Diagnostic", "Checkup"
     },
+    image: {
+      url: { type: String }, // Cloudinary secure_url, shown on the service card/detail page
+      publicId: { type: String }, // Cloudinary public_id, needed to delete/replace the image later
+    },
     isActive: {
       type: Boolean, // lets admin hide a service without deleting it
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Service = mongoose.model("Service", serviceSchema);

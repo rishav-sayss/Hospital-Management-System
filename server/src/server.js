@@ -1,13 +1,14 @@
+import "dotenv/config";
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/Users.Route/Auth.Routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
 import Adminroute from "./routes/AdminRoute/doctor.routes.js";
+import serviceRoutes from "./routes/AdminRoute/service.route.js";
 import doctorRoutes from "./routes/DocterRoute/docter.route.js";
-dotenv.config();
+ 
 
 const app = express();
 
@@ -29,8 +30,10 @@ app.use("/api/appointments", appointmentRoutes);
 //Docter routes
 app.use("/api/doctor", doctorRoutes);
 
+
 //Admin routes
 app.use("/api/admin", Adminroute);
+app.use("/api/services", serviceRoutes);
 
 app.get("/", (req, res) => {
     res.json({

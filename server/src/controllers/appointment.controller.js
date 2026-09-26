@@ -137,3 +137,27 @@ export const updateAppointmentStatus = async (req, res) => {
     res.status(500).json({ message: "Could not update appointment", error: err.message });
   }
 };
+
+//@route  GET /api/appointments/admin?type=doctor  → "Appointments" (doctor consultations)
+// @route  GET /api/appointments/admin?type=service → "Service Appointments"
+// @route  GET /api/appointments/admin              → everything
+// Admin-only — sees every appointment across every doctor/service, not just their own
+export const getAllAppointments = async (req, res) => {
+  try {
+    const { type } = req.query;
+ 
+    const filter = {};
+    if (type === "doctor") filter.doctor = { $ne: null };
+    if (type === "service") filter.service = { $ne: null };
+ 
+    const appointments = await Appointment.find(filter)
+      .populate("patient", "name email")
+      .populate({ path: "doctor", populate: { path: "user", select: "name" } })
+      .populate("service", "name price")
+      .sort({ createdAt: -1 });
+ 
+    res.status(200).json({ appointments });
+  } catch (err) {
+    res.status(500).json({ message: "Could not fetch appointments", error: err.message });
+  }
+};
