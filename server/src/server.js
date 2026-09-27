@@ -15,7 +15,7 @@ const app = express();
 connectDB();
 
 app.use(cors({
-    origin: "http://localhost:3000",
+    origin: "http://localhost:5173", // Vite ka default port
     credentials: true
 }));
 
