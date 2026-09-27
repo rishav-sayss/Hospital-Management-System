@@ -5,21 +5,32 @@ import Register from "./Pages/Register";
 import Home from "./Pages/Home";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import "./index.css";
+import Layout from "./Components/Layout";
+
 const router = createBrowserRouter([
+  // Login/Register stay outside Layout — they have their own full-screen branding
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
-  { path: "/", element: <Home /> },
-  // Example: a doctor-only page — swap <h1> for your real component later.
-  // Anyone not logged in, or logged in with a different role, gets redirected.
+ 
+  // Everything else shares the Navbar via Layout
   {
-    path: "/doctor/dashboard",
-    element: (
-      <ProtectedRoute allowedRoles={["doctor"]}>
-        <h1>Doctor Dashboard</h1>
-      </ProtectedRoute>
-    ),
+    element: <Layout />,
+    children: [
+      { path: "/", element: <Home /> },
+ 
+      // Example: a doctor-only page — swap <h1> for your real component later.
+      {
+        path: "/doctor/dashboard",
+        element: (
+          <ProtectedRoute allowedRoles={["doctor"]}>
+            <h1>Doctor Dashboard</h1>
+          </ProtectedRoute>
+        ),
+      },
+    ],
   },
 ]);
+
 
 function App() {
   return (
