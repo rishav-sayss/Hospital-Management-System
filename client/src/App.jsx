@@ -3,6 +3,8 @@ import { AuthProvider } from "./Context/Authcontext";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import Home from "./Pages/Home";
+import Doctorlist from "./Pages/Docterlist.jsx";
+import DoctorProfile from "./Pages/DoctorProfile.jsx";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import "./index.css";
 import Layout from "./Components/Layout";
@@ -11,13 +13,14 @@ const router = createBrowserRouter([
   // Login/Register stay outside Layout — they have their own full-screen branding
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
- 
+
   // Everything else shares the Navbar via Layout
   {
     element: <Layout />,
     children: [
       { path: "/", element: <Home /> },
- 
+      { path: "/doctors", element: <Doctorlist /> },
+       { path: "/doctor/:id", element: <DoctorProfile /> },
       // Example: a doctor-only page — swap <h1> for your real component later.
       {
         path: "/doctor/dashboard",
@@ -30,7 +33,6 @@ const router = createBrowserRouter([
     ],
   },
 ]);
-
 
 function App() {
   return (
