@@ -3,9 +3,12 @@ import { AuthProvider } from "./Context/Authcontext";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import Home from "./Pages/Home";
+import Appointments from "./Pages/Appointments";
 import Doctorlist from "./Pages/Docterlist.jsx";
 import DoctorProfile from "./Pages/DoctorProfile.jsx";
 import ProtectedRoute from "./Components/ProtectedRoute";
+import Services from "./Pages/Services.jsx";
+import ServiceDetail from "./Pages/ServicesDetailepage.jsx";
 import "./index.css";
 import Layout from "./Components/Layout";
 
@@ -20,7 +23,32 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <Home /> },
       { path: "/doctors", element: <Doctorlist /> },
-       { path: "/doctor/:id", element: <DoctorProfile /> },
+      { path: "/doctor/:id", element: <DoctorProfile /> },
+      // Not logged in, or logged in as anyone other than a patient, gets redirected
+      {
+        path: "/appointments",
+        element: (
+          <ProtectedRoute allowedRoles={["patient"]}>
+            <Appointments />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/services",
+        element: (
+          <ProtectedRoute allowedRoles={["patient"]}>
+            <Services />
+          </ProtectedRoute>
+        ),
+      },
+            {
+        path: "/services/:id",
+        element: (
+          <ProtectedRoute allowedRoles={["patient"]}>
+            <ServiceDetail />
+          </ProtectedRoute>
+        ),
+      },
       // Example: a doctor-only page — swap <h1> for your real component later.
       {
         path: "/doctor/dashboard",
