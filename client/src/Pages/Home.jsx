@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import Testimonials from "../Components/Testimonials";
-import ContactSection from "../Components/ConectSection";
+import ContactSection from "../Pages/ContactSection.jsx";
 
 const Home = () => {
   return (

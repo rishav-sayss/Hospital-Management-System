@@ -9,6 +9,7 @@ import DoctorProfile from "./Pages/DoctorProfile.jsx";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import Services from "./Pages/Services.jsx";
 import ServiceDetail from "./Pages/ServicesDetailepage.jsx";
+import Contact from "./Pages/ContactSection.jsx";
 import "./index.css";
 import Layout from "./Components/Layout.jsx";
  
@@ -46,6 +47,7 @@ const router = createBrowserRouter([
       { path: "/", element: <Home /> },
       { path: "/doctors", element: <Doctorlist /> },
       { path: "/doctor/:id", element: <DoctorProfile /> },
+      { path: "/contact", element: <Contact /> },
       // Not logged in, or logged in as anyone other than a patient, gets redirected
       {
         path: "/appointments",
