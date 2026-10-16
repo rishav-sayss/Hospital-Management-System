@@ -129,9 +129,10 @@ const Appointments = () => {
 
     setCancellingId(id);
     try {
-      const res = await api.patch(`/appointments/${id}/cancel`);
-      // Swap in the updated appointment (now status: "cancelled") without a full refetch
-      setAppointments((prev) => prev.map((a) => (a._id === id ? res.data.appointment : a)));
+      await api.patch(`/appointments/${id}/cancel`);
+      // The backend keeps the cancelled record for history, but the card
+      // disappears from this screen right away rather than just changing badge
+      setAppointments((prev) => prev.filter((a) => a._id !== id));
     } catch (err) {
       alert(err.response?.data?.message || "Could not cancel this appointment");
     } finally {

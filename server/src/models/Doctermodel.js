@@ -6,7 +6,7 @@ const timeSlotSchema = new mongoose.Schema(
     time: { type: String, required: true },
     isBooked: { type: Boolean, default: false },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // One date entry in a doctor's schedule, holding all slots for that date
@@ -15,7 +15,7 @@ const scheduleDaySchema = new mongoose.Schema(
     date: { type: String, required: true }, // stored as "YYYY-MM-DD" for easy sorting/matching
     slots: [timeSlotSchema],
   },
-  { _id: false }
+  { _id: false },
 );
 
 const doctorSchema = new mongoose.Schema(
@@ -70,8 +70,12 @@ const doctorSchema = new mongoose.Schema(
       default: true,
     },
     schedule: [scheduleDaySchema], // dates the doctor has opened up, each with its own slots
+    image: {
+      url: { type: String }, // Cloudinary secure_url, shown on profile/list cards
+      publicId: { type: String }, // Cloudinary public_id, needed to delete/replace the image later
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Doctor = mongoose.model("Doctor", doctorSchema);

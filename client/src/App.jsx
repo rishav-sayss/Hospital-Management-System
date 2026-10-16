@@ -10,12 +10,34 @@ import ProtectedRoute from "./Components/ProtectedRoute";
 import Services from "./Pages/Services.jsx";
 import ServiceDetail from "./Pages/ServicesDetailepage.jsx";
 import "./index.css";
-import Layout from "./Components/Layout";
+import Layout from "./Components/Layout.jsx";
+ 
+
+// Doctor panel
+import DoctorLayout from "./Components/Docter/DoctorLayout.jsx";
+import DoctorDashboard from "./Pages/docter/DocterDashboard.jsx";
+import DoctorAppointments from "./Pages/docter/DoctorAppointments.jsx";
+import DoctorEditProfile from "./Pages/docter/DoctorEditProfile.jsx";
 
 const router = createBrowserRouter([
   // Login/Register stay outside Layout — they have their own full-screen branding
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
+
+  // Doctor-only area — its own navbar (DoctorLayout), separate from the main site's
+  {
+    element: (
+      <ProtectedRoute allowedRoles={["doctor"]}>
+        <DoctorLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: "/doctor/dashboard", element: <DoctorDashboard /> },
+      { path: "/doctor/appointments", element: <DoctorAppointments /> },
+      { path: "/doctor/profile", element: <DoctorEditProfile /> },
+      
+    ],
+  },
 
   // Everything else shares the Navbar via Layout
   {
@@ -41,20 +63,11 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-            {
+      {
         path: "/services/:id",
         element: (
           <ProtectedRoute allowedRoles={["patient"]}>
             <ServiceDetail />
-          </ProtectedRoute>
-        ),
-      },
-      // Example: a doctor-only page — swap <h1> for your real component later.
-      {
-        path: "/doctor/dashboard",
-        element: (
-          <ProtectedRoute allowedRoles={["doctor"]}>
-            <h1>Doctor Dashboard</h1>
           </ProtectedRoute>
         ),
       },

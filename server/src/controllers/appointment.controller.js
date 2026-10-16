@@ -1,5 +1,5 @@
-import Doctor from "../models/Doctor.js";
-import Service from "../models/Service.js";
+import Doctor from "../models/Doctermodel.js";
+import Service from "../models/Services.js";
 import Appointment from "../models/Appointment.js";
 
 // Marks a doctor's slot as unbooked again — used whenever a doctor appointment

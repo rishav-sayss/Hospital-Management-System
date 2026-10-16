@@ -1,5 +1,6 @@
 import Doctor from "../models/Doctermodel.js";
-
+import User from "../models/Authmodel/Usermodel.js";
+import { uploadBufferToCloudinary, deleteFromCloudinary } from "../config/UploadtoClaudinary.js";
 // Fetches the doctor profile linked to the logged-in user, or sends a 404 and returns null.
 // Every handler below calls this first so a doctor can only ever touch their OWN profile.
 const findOwnDoctorProfile = async (req, res) => {
@@ -14,13 +15,18 @@ const findOwnDoctorProfile = async (req, res) => {
 // @route  GET /api/doctors/me
 export const getMyProfile = async (req, res) => {
   try {
-    const doctor = await Doctor.findOne({ user: req.user._id }).populate("user", "name email");
+    const doctor = await Doctor.findOne({ user: req.user._id }).populate(
+      "user",
+      "name email",
+    );
     if (!doctor) {
       return res.status(404).json({ message: "Doctor profile not found" });
     }
     res.status(200).json({ doctor });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch profile", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch profile", error: err.message });
   }
 };
 
@@ -31,7 +37,7 @@ export const updateMyProfile = async (req, res) => {
   try {
     const doctor = await findOwnDoctorProfile(req, res);
     if (!doctor) return;
-
+ 
     const editableFields = [
       "specialization",
       "qualifications",
@@ -41,16 +47,32 @@ export const updateMyProfile = async (req, res) => {
       "consultationFee",
       "isAvailable",
     ];
-
+ 
     editableFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         doctor[field] = req.body[field];
       }
     });
-
+ 
+    // A new photo was sent — replace the old one (if any) on Cloudinary
+    if (req.file) {
+      console.log("doctropfrofile",req.file)
+      await deleteFromCloudinary(doctor.image?.publicId);
+      const uploaded = await uploadBufferToCloudinary(req.file.buffer, "doctor");
+      doctor.image = { url: uploaded.url, publicId: uploaded.publicId };
+    }
+ 
     await doctor.save();
-    res.status(200).json({ doctor });
+ 
+    // "name" lives on the linked User document, not on Doctor
+    if (req.body.name !== undefined) {
+      await User.findByIdAndUpdate(doctor.user, { name: req.body.name });
+    }
+ 
+    const updated = await Doctor.findById(doctor._id).populate("user", "name email");
+    res.status(200).json({ doctor: updated });
   } catch (err) {
+    console.log(err)
     res.status(500).json({ message: "Could not update profile", error: err.message });
   }
 };
@@ -69,7 +91,9 @@ export const addScheduleDate = async (req, res) => {
 
     const alreadyExists = doctor.schedule.some((day) => day.date === date);
     if (alreadyExists) {
-      return res.status(409).json({ message: "This date is already in your schedule" });
+      return res
+        .status(409)
+        .json({ message: "This date is already in your schedule" });
     }
 
     doctor.schedule.push({ date, slots: [] });
@@ -96,7 +120,9 @@ export const deleteScheduleDate = async (req, res) => {
     // Refuse to remove a date that already has a patient booked into it
     const hasBookedSlot = day.slots.some((slot) => slot.isBooked);
     if (hasBookedSlot) {
-      return res.status(400).json({ message: "Cannot remove a date with booked appointments" });
+      return res
+        .status(400)
+        .json({ message: "Cannot remove a date with booked appointments" });
     }
 
     doctor.schedule = doctor.schedule.filter((d) => d.date !== date);
@@ -104,7 +130,9 @@ export const deleteScheduleDate = async (req, res) => {
 
     res.status(200).json({ schedule: doctor.schedule });
   } catch (err) {
-    res.status(500).json({ message: "Could not delete date", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not delete date", error: err.message });
   }
 };
 
@@ -128,7 +156,9 @@ export const addSlot = async (req, res) => {
 
     const alreadyExists = day.slots.some((slot) => slot.time === time);
     if (alreadyExists) {
-      return res.status(409).json({ message: "This time slot already exists for this date" });
+      return res
+        .status(409)
+        .json({ message: "This time slot already exists for this date" });
     }
 
     day.slots.push({ time, isBooked: false });
@@ -161,7 +191,9 @@ export const deleteSlot = async (req, res) => {
 
     const slot = day.slots.find((s) => s.time === time);
     if (slot?.isBooked) {
-      return res.status(400).json({ message: "Cannot remove a slot that is already booked" });
+      return res
+        .status(400)
+        .json({ message: "Cannot remove a slot that is already booked" });
     }
 
     day.slots = day.slots.filter((s) => s.time !== time);
@@ -169,11 +201,11 @@ export const deleteSlot = async (req, res) => {
 
     res.status(200).json({ schedule: doctor.schedule });
   } catch (err) {
-    res.status(500).json({ message: "Could not delete slot", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not delete slot", error: err.message });
   }
 };
-
-
 
 //**   Public Apis  ***/
 
@@ -181,16 +213,21 @@ export const deleteSlot = async (req, res) => {
 // Public — patients browse a doctor's profile without logging in
 export const getDoctorById = async (req, res) => {
   try {
-    const doctor = await Doctor.findById(req.params.id).populate("user", "name");
+    const doctor = await Doctor.findById(req.params.id).populate(
+      "user",
+      "name",
+    );
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
     res.status(200).json({ doctor });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch doctor", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch doctor", error: err.message });
   }
 };
- 
+
 // @route  GET /api/doctors/:id/available-dates
 // Public — only returns dates that still have at least one unbooked slot
 export const getAvailableDates = async (req, res) => {
@@ -199,17 +236,19 @@ export const getAvailableDates = async (req, res) => {
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
- 
+
     const availableDates = doctor.schedule
       .filter((day) => day.slots.some((slot) => !slot.isBooked))
       .map((day) => day.date);
- 
+
     res.status(200).json({ dates: availableDates });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch dates", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch dates", error: err.message });
   }
 };
- 
+
 // @route  GET /api/doctors/:id/available-slots?date=YYYY-MM-DD
 // Public — only returns the unbooked slots for the requested date.
 // If the date has no slots left (or doesn't exist), returns an empty array —
@@ -220,23 +259,24 @@ export const getAvailableSlots = async (req, res) => {
     if (!date) {
       return res.status(400).json({ message: "Date query param is required" });
     }
- 
+
     const doctor = await Doctor.findById(req.params.id);
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
- 
+
     const day = doctor.schedule.find((d) => d.date === date);
     const availableSlots = day
       ? day.slots.filter((slot) => !slot.isBooked).map((s) => s.time)
       : [];
- 
+
     res.status(200).json({ slots: availableSlots });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch slots", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch slots", error: err.message });
   }
 };
-
 
 // @route  GET /api/doctors  (public — patients browse, admin's "List Doctors" also uses this)
 export const getAllDoctors = async (req, res) => {
@@ -244,6 +284,38 @@ export const getAllDoctors = async (req, res) => {
     const doctors = await Doctor.find().populate("user", "name email");
     res.status(200).json({ doctors });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch doctors", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch doctors", error: err.message });
+  }
+};
+
+//@route  PUT /api/doctors/:id/admin  (admin only)
+// Lets an admin manually set the stats a doctor can't edit on their own profile —
+// name, totalPatients, successRate, rating — until a real system (completed-appointment
+// counts, patient reviews) replaces the need for manual entry.
+export const updateDoctorByAdmin = async (req, res) => {
+  try {
+    const { name, totalPatients, successRate, rating } = req.body;
+ 
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+ 
+    if (totalPatients !== undefined) doctor.totalPatients = totalPatients;
+    if (successRate !== undefined) doctor.successRate = successRate;
+    if (rating !== undefined) doctor.rating = rating;
+    await doctor.save();
+ 
+    // "name" lives on the User document, not the Doctor document
+    if (name !== undefined) {
+      await User.findByIdAndUpdate(doctor.user, { name });
+    }
+ 
+    const updated = await Doctor.findById(doctor._id).populate("user", "name email");
+    res.status(200).json({ doctor: updated });
+  } catch (err) {
+    res.status(500).json({ message: "Could not update doctor", error: err.message });
   }
 };
