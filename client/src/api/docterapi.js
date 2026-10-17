@@ -29,3 +29,7 @@ export const deleteScheduleSlot = (date, time) =>
 
 export const updateDoctorByAdmin = (doctorId, updates) =>
   api.put(`/doctor/${doctorId}/admin`, updates).then((res) => res.data.doctor);
+
+
+
+ 

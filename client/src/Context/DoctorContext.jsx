@@ -1,87 +1,125 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { createContext, useContext, useMemo, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../api/axios";
 import { useAuth } from "./Authcontext.jsx";
 
 const DoctorContext = createContext(null);
 
-// backend { doctor } bhejta hai; name/email populated "user" me bhi ho sakta hai
-const norm = (d) => ({ ...d, name: d.name || d.user?.name, email: d.email || d.user?.email });
+const PROFILE_KEY = ["doctor-me"];
+const APPTS_KEY = ["doctor-appointments"];
+const EMPTY = []; // stable reference, taaki bina data ke bhi re-render na ho
 
-// DB me status "completed" (lowercase) ho ya "Completed" -- UI me hamesha "Completed"
+// name/email populated "user" me bhi ho sakta hai
+const norm = (d) => ({ ...d, name: d.name || d.user?.name, email: d.email || d.user?.email });
+// DB me "completed" ho ya "Completed" -- UI me hamesha "Completed"
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1).toLowerCase() : "");
-const normAppt = (a) => ({ ...a, _lower: a.status === a.status?.toLowerCase(), status: cap(a.status) });
+const normAppt = (a) => ({ ...a, status: cap(a.status) });
 
 export const DoctorProvider = ({ children }) => {
   const { user } = useAuth();
   const doctorId = user?._id || user?.id;
+  const qc = useQueryClient();
 
-  const [appointments, setAppointments] = useState([]);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchAppointments = useCallback(async () => {
-    if (!doctorId) return;
-    setLoading(true);
-    try {
-      const { data } = await api.get("/appointments/doctor");
-      const list = Array.isArray(data) ? data : data.appointments || [];
-      setAppointments(list.map(normAppt));
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [doctorId]);
-
-  const fetchProfile = useCallback(async () => {
-    try {
+  // ---- Profile: cache me raw data, har consumer ko select se norm milta hai ----
+  // Apna useDoctorProfile hook bhi yahi queryKey use kare to /doctor/me ek hi baar jaayegi
+  const profileQ = useQuery({
+    queryKey: PROFILE_KEY,
+    queryFn: async () => {
       const { data } = await api.get("/doctor/me");
-      setProfile(norm(data.doctor || data));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [doctorId]);
+      return data.doctor || data;
+    },
+    select: norm,
+    enabled: !!doctorId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    fetchAppointments();
-    fetchProfile();
-  }, [fetchAppointments, fetchProfile]);
+  // ---- Appointments ----
+  const apptQ = useQuery({
+    queryKey: APPTS_KEY,
+    queryFn: async () => {
+      const { data } = await api.get("/appointments/doctor");
+      return Array.isArray(data) ? data : data.appointments || [];
+    },
+    select: (list) => list.map(normAppt),
+    enabled: !!doctorId,
+    staleTime: 30 * 1000,
+  });
+  const appointments = apptQ.data ?? EMPTY;
 
-  const updateStatus = async (id, status) => {
-    const prev = appointments;
-    const target = appointments.find((a) => a._id === id);
-    setAppointments((l) => l.map((a) => (a._id === id ? { ...a, status } : a)));
-    try {
+  // ---- Status badlo: UI turant, fail ho to wapas ----
+  const { mutate: mutateStatus } = useMutation({
+    mutationFn: ({ id, status }) =>
+      api.patch(`/appointments/${id}/status`, { status }).then((r) => r.data.appointment),
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: APPTS_KEY });
+      const prev = qc.getQueryData(APPTS_KEY);
+      qc.setQueryData(APPTS_KEY, (old = []) => old.map((a) => (a._id === id ? { ...a, status } : a)));
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(APPTS_KEY, ctx?.prev),
+    onSuccess: (updated) => {
+      // server paymentStatus bhi badal sakta hai (cash completed -> paid)
+      if (updated)
+        qc.setQueryData(APPTS_KEY, (old = []) => old.map((a) => (a._id === updated._id ? { ...a, ...updated } : a)));
+    },
+  });
+
+  const updateStatus = useCallback(
+    (id, status) => {
       // DB jis case me rakhta hai usi me bhejo (lowercase ya Capitalized)
-      await api.put(`/appointments/${id}/status`, { status: target?._lower ? status.toLowerCase() : status });
-    } catch {
-      setAppointments(prev);
-    }
-  };
+      const raw = qc.getQueryData(APPTS_KEY)?.find((a) => a._id === id);
+      const lower = raw?.status && raw.status === raw.status.toLowerCase();
+      mutateStatus({ id, status: lower ? status.toLowerCase() : status });
+    },
+    [qc, mutateStatus]
+  );
 
-  // body JSON ya FormData (photo ke saath) dono ho sakta hai
-  const updateProfile = async (body) => {
-    const { data } = await api.put("/doctor/me", body);
-    setProfile(norm(data.doctor || data));
-  };
+  // ---- Profile save: body JSON ya FormData (photo ke saath) ----
+  const profileMut = useMutation({
+    mutationFn: async (body) => {
+      const { data } = await api.put("/doctor/me", body);
+      return data.doctor || data;
+    },
+    onSuccess: (doctor) =>
+      qc.setQueryData(PROFILE_KEY, (old) => ({
+        ...old,
+        ...doctor,
+        // PUT me user sirf id aaye to populated user (naam) mat khoo
+        user: doctor.user && typeof doctor.user === "object" ? doctor.user : old?.user,
+      })),
+  });
+  const updateProfile = profileMut.mutateAsync;
 
+  // ---- Stats: ek hi loop me ----
   const stats = useMemo(() => {
-    const completed = appointments.filter((a) => a.status === "Completed");
-    return {
-      total: appointments.length,
-      completed: completed.length,
-      cancelled: appointments.filter((a) => a.status === "Cancelled").length,
-      earnings: completed.reduce((s, a) => s + (Number(a.fees || a.amount) || 0), 0),
-    };
+    let completed = 0, cancelled = 0, earnings = 0;
+    for (const a of appointments) {
+      if (a.status === "Completed") {
+        completed++;
+        earnings += Number(a.fee) || 0;
+      } else if (a.status === "Cancelled") cancelled++;
+    }
+    return { total: appointments.length, completed, cancelled, earnings };
   }, [appointments]);
 
-  return (
-    <DoctorContext.Provider
-      value={{ doctorId, appointments, profile, loading, stats, fetchAppointments, updateStatus, updateProfile }}
-    >
-      {children}
-    </DoctorContext.Provider>
+  const { refetch: fetchAppointments } = apptQ;
+
+  // value memo: jab tak kuch badla nahi, consumers dobara render nahi honge
+  const value = useMemo(
+    () => ({
+      doctorId,
+      appointments,
+      profile: profileQ.data ?? null,
+      loading: apptQ.isLoading,
+      stats,
+      fetchAppointments,
+      updateStatus,
+      updateProfile,
+    }),
+    [doctorId, appointments, profileQ.data, apptQ.isLoading, stats, fetchAppointments, updateStatus, updateProfile]
   );
+
+  return <DoctorContext.Provider value={value}>{children}</DoctorContext.Provider>;
 };
 
 export const useDoctor = () => useContext(DoctorContext);

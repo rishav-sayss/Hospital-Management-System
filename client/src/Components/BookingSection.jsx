@@ -103,6 +103,7 @@ const BookingSection = ({ doctor }) => {
         paymentMethod,
       });
       setBooked(res.data.appointment);
+      // queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
     } catch (err) {
       setError(err.response?.data?.message || "Could not book the appointment");
       // The slot may have just been taken by someone else, so refresh what's on offer

@@ -12,7 +12,13 @@ const BADGES = {
 };
 const LOCKED = ["Completed", "Cancelled"]; // inka status/reschedule nahi badal sakte
 const dateOf = (a) => a.date || a.slotDate;
-const fmtDate = (d) => new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+// "2026-02-16" -> "16 Feb 2026" (parts se banaya, timezone se date nahi khisakti)
+const fmtDate = (d) => {
+  const [y, m, day] = String(d).slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, day).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+};
+// "9 : 00 Am" / "10 :00Am" / "9:00 AM" -> "9:00 AM"
+const fixTime = (t = "") => t.replace(/\s*:\s*/, ":").replace(/\s*(am|pm)\s*$/i, (_, m) => " " + m.toUpperCase()).trim();
 const to12h = (t) => {
   const [h, m] = t.split(":").map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
@@ -21,14 +27,15 @@ const to12h = (t) => {
 function PatientCard({ a, onReschedule }) {
   const { profile, updateStatus } = useDoctor();
   const doc = a.doctor?.name ? a.doctor : profile || {};
-  const p = a.patient || a.patientInfo || a.patientDetails || a.userData || a.user || {};
+  const pd = a.patientDetails || {}; // asli patient (booking form me bhara hua)
+  const p = a.patient || a.patientInfo || a.userData || a.user || {}; // account holder
   // alag-alag schema names ke liye fallbacks
   const pick = (...vals) => vals.find((v) => v !== undefined && v !== null && v !== "");
-  const name = pick(a.patientName, a.name, p.name);
-  const age = pick(a.age, a.patientAge, p.age);
-  const gender = pick(a.gender, a.patientGender, p.gender);
-  const phone = pick(a.phone, a.patientPhone, a.mobile, a.contact, p.phone, p.mobile);
-  const fees = pick(a.fees, a.amount, a.fee, a.price, doc.fees, profile?.fees);
+  const name = pick(pd.fullName, a.patientName, a.name, p.name);
+  const age = pick(pd.age, a.age, a.patientAge, p.age);
+  const gender = pick(pd.gender, a.gender, a.patientGender, p.gender);
+  const phone = pick(pd.mobile, a.phone, a.patientPhone, a.mobile, a.contact, p.phone, p.mobile);
+  const fees = pick(a.fee, a.fees, a.amount, a.price, doc.fees, profile?.fees);
   const photo = pick(doc.image, doc.photo, doc.profileImage, doc.avatar);
   const [imgFailed, setImgFailed] = useState(false);
   const locked = LOCKED.includes(a.status);
@@ -52,7 +59,7 @@ function PatientCard({ a, onReschedule }) {
       </div>
 
       <p className="mt-4 flex items-center gap-2 text-[17px] font-bold">
-        <Calendar size={16} className="text-[#0b8062]" /> {fmtDate(dateOf(a))} : {a.time || a.slotTime}
+        <Calendar size={16} className="text-[#0b8062]" /> {fmtDate(dateOf(a))} : {fixTime(a.time || a.slotTime)}
       </p>
       <p className="mt-3 text-sm font-bold">₹{fees ?? "—"}</p>
       <p className="mt-3 flex items-center gap-2 text-sm text-[#0b8062]"><Phone size={14} /> {phone ?? "—"}</p>
@@ -111,7 +118,7 @@ function RescheduleModal({ appt, onClose, onDone }) {
           <h2 className="text-xl font-bold">Reschedule</h2>
           <button type="button" onClick={onClose} aria-label="Close"><X size={20} /></button>
         </div>
-        <p className="mb-4 text-sm text-[#3d7d6c]">{appt.patientName || appt.patient?.name || appt.userData?.name}</p>
+        <p className="mb-4 text-sm text-[#3d7d6c]">{appt.patientDetails?.fullName || appt.patientName || appt.patient?.name}</p>
         <label className="mb-3 block text-sm font-semibold">New date
           <input type="date" required min={new Date().toISOString().slice(0, 10)} value={date} onChange={(e) => setDate(e.target.value)} className={inp} />
         </label>
@@ -137,13 +144,13 @@ export default function DoctorAppointments() {
     const term = q.trim().toLowerCase();
     return appointments
       .filter((a) => status === "All" || a.status === status)
-      .filter((a) => !term || (a.patientName || a.patient?.name || a.userData?.name || "").toLowerCase().includes(term))
+      .filter((a) => !term || (a.patientDetails?.fullName || a.patientName || a.patient?.name || a.userData?.name || "").toLowerCase().includes(term))
       .sort((x, y) => new Date(dateOf(y) || 0) - new Date(dateOf(x) || 0)); // latest upar
   }, [appointments, q, status]);
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between   gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">All Appointments</h1>
           <p className="text-sm text-[#3d7d6c]">Latest at top — search by patient name</p>

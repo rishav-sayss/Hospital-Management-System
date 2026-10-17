@@ -6,9 +6,12 @@ import Appointment from "../models/Appointment.js";
 // gets cancelled, so someone else can book that same date/time
 const freeDoctorSlot = async (doctorId, date, time) => {
   await Doctor.updateOne(
-    { _id: doctorId, schedule: { $elemMatch: { date, slots: { $elemMatch: { time } } } } },
+    {
+      _id: doctorId,
+      schedule: { $elemMatch: { date, slots: { $elemMatch: { time } } } },
+    },
     { $set: { "schedule.$[day].slots.$[slot].isBooked": false } },
-    { arrayFilters: [{ "day.date": date }, { "slot.time": time }] }
+    { arrayFilters: [{ "day.date": date }, { "slot.time": time }] },
   );
 };
 
@@ -16,15 +19,21 @@ const freeDoctorSlot = async (doctorId, date, time) => {
 // body: { doctorId OR serviceId, date, time, patientDetails: {...}, paymentMethod }
 export const createAppointment = async (req, res) => {
   try {
-    const { doctorId, serviceId, date, time, patientDetails, paymentMethod } = req.body;
+    const { doctorId, serviceId, date, time, patientDetails, paymentMethod } =
+      req.body;
 
     if ((!doctorId && !serviceId) || !date || !time || !patientDetails) {
       return res
         .status(400)
-        .json({ message: "doctorId or serviceId, date, time and patientDetails are required" });
+        .json({
+          message:
+            "doctorId or serviceId, date, time and patientDetails are required",
+        });
     }
     if (doctorId && serviceId) {
-      return res.status(400).json({ message: "Provide either doctorId or serviceId, not both" });
+      return res
+        .status(400)
+        .json({ message: "Provide either doctorId or serviceId, not both" });
     }
 
     // ---- Service booking — no schedule/slots to check, any date/time is accepted ----
@@ -60,19 +69,28 @@ export const createAppointment = async (req, res) => {
       {
         _id: doctorId,
         schedule: {
-          $elemMatch: { date, slots: { $elemMatch: { time, isBooked: false } } },
+          $elemMatch: {
+            date,
+            slots: { $elemMatch: { time, isBooked: false } },
+          },
         },
       },
       { $set: { "schedule.$[day].slots.$[slot].isBooked": true } },
       {
-        arrayFilters: [{ "day.date": date }, { "slot.time": time, "slot.isBooked": false }],
-      }
+        arrayFilters: [
+          { "day.date": date },
+          { "slot.time": time, "slot.isBooked": false },
+        ],
+      },
     );
 
     if (updateResult.matchedCount === 0) {
       return res
         .status(409)
-        .json({ message: "This slot is not available (already booked or doesn't exist)" });
+        .json({
+          message:
+            "This slot is not available (already booked or doesn't exist)",
+        });
     }
 
     const appointment = await Appointment.create({
@@ -88,7 +106,9 @@ export const createAppointment = async (req, res) => {
     res.status(201).json({ appointment });
   } catch (err) {
     console.error(err); // TEMPORARY — prints the full stack trace to the terminal
-    res.status(500).json({ message: "Could not create appointment", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not create appointment", error: err.message });
   }
 };
 
@@ -103,23 +123,33 @@ export const cancelAppointment = async (req, res) => {
 
     // Ownership check — a patient can only cancel THEIR OWN booking
     if (appointment.patient?.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "This appointment does not belong to you" });
+      return res
+        .status(403)
+        .json({ message: "This appointment does not belong to you" });
     }
 
     if (["completed", "cancelled"].includes(appointment.status)) {
-      return res.status(400).json({ message: `Appointment is already ${appointment.status}` });
+      return res
+        .status(400)
+        .json({ message: `Appointment is already ${appointment.status}` });
     }
 
     appointment.status = "cancelled";
     await appointment.save();
 
     if (appointment.doctor) {
-      await freeDoctorSlot(appointment.doctor, appointment.date, appointment.time);
+      await freeDoctorSlot(
+        appointment.doctor,
+        appointment.date,
+        appointment.time,
+      );
     }
 
     res.status(200).json({ appointment });
   } catch (err) {
-    res.status(500).json({ message: "Could not cancel appointment", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not cancel appointment", error: err.message });
   }
 };
 
@@ -130,12 +160,16 @@ export const getMyAppointments = async (req, res) => {
     const appointments = await Appointment.find({ patient: req.user._id })
       .populate({ path: "doctor", populate: { path: "user", select: "name" } })
       .sort({ createdAt: -1 });
-
+ 
     res.status(200).json({ appointments });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch appointments", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch appointments", error: err.message });
   }
 };
+
+ 
 
 // @route  GET /api/appointments/doctor
 // The logged-in doctor's own list of appointments (all patients who booked them)
@@ -152,7 +186,9 @@ export const getDoctorAppointments = async (req, res) => {
 
     res.status(200).json({ appointments });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch appointments", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch appointments", error: err.message });
   }
 };
 
@@ -172,7 +208,9 @@ export const updateAppointmentStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid paymentStatus value" });
     }
     if (!status && !paymentStatus) {
-      return res.status(400).json({ message: "Provide status and/or paymentStatus to update" });
+      return res
+        .status(400)
+        .json({ message: "Provide status and/or paymentStatus to update" });
     }
 
     const doctor = await Doctor.findOne({ user: req.user._id });
@@ -188,7 +226,9 @@ export const updateAppointmentStatus = async (req, res) => {
     // Ownership check — a doctor can only update appointments booked with THEM,
     // never someone else's appointment even if they guess a valid appointment id
     if (appointment.doctor?.toString() !== doctor._id.toString()) {
-      return res.status(403).json({ message: "This appointment does not belong to you" });
+      return res
+        .status(403)
+        .json({ message: "This appointment does not belong to you" });
     }
 
     if (status) appointment.status = status;
@@ -196,12 +236,18 @@ export const updateAppointmentStatus = async (req, res) => {
     await appointment.save();
 
     if (status === "cancelled" && appointment.doctor) {
-      await freeDoctorSlot(appointment.doctor, appointment.date, appointment.time);
+      await freeDoctorSlot(
+        appointment.doctor,
+        appointment.date,
+        appointment.time,
+      );
     }
 
     res.status(200).json({ appointment });
   } catch (err) {
-    res.status(500).json({ message: "Could not update appointment", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not update appointment", error: err.message });
   }
 };
 
@@ -225,6 +271,8 @@ export const getAllAppointments = async (req, res) => {
 
     res.status(200).json({ appointments });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch appointments", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch appointments", error: err.message });
   }
 };

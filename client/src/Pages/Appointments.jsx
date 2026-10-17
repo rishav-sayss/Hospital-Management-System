@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Clock, CreditCard, Bell, X } from "lucide-react";
 import api from "../api/axios";
 
@@ -105,40 +105,37 @@ const ServiceAppointmentCard = ({ appointment, onCancel, cancellingId }) => (
 );
 
 const Appointments = () => {
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [cancellingId, setCancellingId] = useState(null);
+ 
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        const res = await api.get("/appointments/me");
-        setAppointments(res.data.appointments);
-      } catch {
-        setError("Could not load your appointments. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAppointments();
-  }, []);
+  const { data: appointments = [], isLoading: loading, isError } = useQuery({
+    queryKey: ["my-appointments"],
+    queryFn: async () => (await api.get("/appointments/me")).data.appointments,
+    staleTime: 60 * 1000,
+  });
+  const error = isError ? "Could not load your appointments. Please try again." : "";
 
-  const handleCancel = async (id) => {
-    if (!window.confirm("Cancel this appointment?")) return;
-
-    setCancellingId(id);
-    try {
-      await api.patch(`/appointments/${id}/cancel`);
-      // The backend keeps the cancelled record for history, but the card
-      // disappears from this screen right away rather than just changing badge
-      setAppointments((prev) => prev.filter((a) => a._id !== id));
-    } catch (err) {
+  const cancelMutation = useMutation({
+    mutationFn: (id) => api.patch(`/appointments/${id}/cancel`),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["my-appointments"] });
+      const prev = queryClient.getQueryData(["my-appointments"]);
+      // card turant gayab, server ke jawab ka wait nahi
+      queryClient.setQueryData(["my-appointments"], (old = []) => old.filter((a) => a._id !== id));
+      return { prev };
+    },
+    onError: (err, id, ctx) => {
+      queryClient.setQueryData(["my-appointments"], ctx.prev); // fail hua to wapas laao
       alert(err.response?.data?.message || "Could not cancel this appointment");
-    } finally {
-      setCancellingId(null);
-    }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["my-appointments"] }),
+  });
+
+  const handleCancel = (id) => {
+    if (!window.confirm("Cancel this appointment?")) return;
+    cancelMutation.mutate(id);
   };
+  const cancellingId = cancelMutation.isPending ? cancelMutation.variables : null;
 
   // One list from the API, split by what was booked
   const doctorAppointments = appointments.filter((a) => a.doctor);

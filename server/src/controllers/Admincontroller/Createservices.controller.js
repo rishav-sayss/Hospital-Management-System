@@ -38,10 +38,10 @@ export const createService = async (req, res) => {
 // @route  GET /api/services  (public — patients browse, admin's "List Services" also uses this)
 export const getAllServices = async (req, res) => {
   try {
-    const services = await Service.find({ isActive: true }).sort({
-      createdAt: -1,
-    });
-    res.status(200).json({ services });
+    const services = await Service.find()
+      .select("name price image description")
+      .lean();
+    res.json({ services });
   } catch (err) {
     res
       .status(500)

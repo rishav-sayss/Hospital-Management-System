@@ -8,7 +8,7 @@ import {
   deleteScheduleSlot,
 } from "../../api/docterapi.js";
 import { useAuth } from "../../Context/Authcontext.jsx";
-
+import { compressImage } from "../../utils/Compressimage.js";
 // Fields the doctor can actually edit on the Doctor document itself — kept in
 // one place so the form and the save handler can't drift apart.
 // "name" is handled separately below since it lives on the User document, not here.
@@ -105,9 +105,9 @@ export const useDoctorProfile = () => {
     setUploadingPhoto(true);
     setError("");
     try {
-      console.log( "file",file)
+     const small = await compressImage(file);
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("image", small);
 
       const updated = await updateMyDoctorProfile(formData);
       console.log("Updated doctor profile with new photo:", updated);

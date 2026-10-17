@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Stethoscope, ChevronsRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
 
 const ServiceCard = ({ service }) => (
@@ -36,23 +37,17 @@ const ServiceCard = ({ service }) => (
 );
 
 const ServiceList = () => {
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const res = await api.get("/services");
-        setServices(res.data.services);
-      } catch {
-        setError("Could not load services. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchServices();
-  }, []);
+ 
+  const {
+    data: services = [],
+    isLoading: loading,
+    isError,
+  } = useQuery({
+    queryKey: ["services"],
+    queryFn: async () => (await api.get("/services")).data.services,
+    staleTime: 10 * 60 * 1000,   // 10 minute cache
+  });
+  const error = isError ? "Could not load services. Please try again." : "";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/70 to-white px-6 py-14">

@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { CalendarDays, IndianRupee, CheckCircle2, XCircle, Phone, RefreshCcw } from "lucide-react";
+import { useMemo, useCallback , useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  CalendarDays,
+  IndianRupee,
+  CheckCircle2,
+  XCircle,
+  Phone,
+  RefreshCcw,
+} from "lucide-react";
 import api from "../../api/axios";
 import { useAuth } from "../../Context/Authcontext.jsx";
 
@@ -17,7 +25,11 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // "2026-02-15" -> "15 Feb 2026"
 const formatDate = (str) => {
   const [y, m, d] = str.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(y, m - 1, d).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
 
 const StatCard = ({ icon: Icon, iconBg, label, value }) => (
@@ -26,7 +38,9 @@ const StatCard = ({ icon: Icon, iconBg, label, value }) => (
       <p className="text-sm text-slate-500">{label}</p>
       <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
     </div>
-    <div className={`w-11 h-11 rounded-full flex items-center justify-center ${iconBg}`}>
+    <div
+      className={`w-11 h-11 rounded-full flex items-center justify-center ${iconBg}`}
+    >
       <Icon className="w-5 h-5" />
     </div>
   </div>
@@ -42,7 +56,9 @@ const AppointmentCard = ({ appointment, onStatusChange, updatingId }) => {
           {patientDetails.fullName[0]}
         </div>
         <div>
-          <h3 className="font-bold text-slate-900 leading-tight">{patientDetails.fullName}</h3>
+          <h3 className="font-bold text-slate-900 leading-tight">
+            {patientDetails.fullName}
+          </h3>
           <p className="text-xs text-slate-500">
             {patientDetails.age} yrs · {cap(patientDetails.gender)}
           </p>
@@ -54,14 +70,20 @@ const AppointmentCard = ({ appointment, onStatusChange, updatingId }) => {
       </p>
 
       <div className="flex items-center justify-between mt-4">
-        <span className="font-bold text-slate-900 text-sm">{formatDate(appointment.date)}</span>
-        <span className="font-semibold text-slate-700 text-sm">{appointment.time}</span>
+        <span className="font-bold text-slate-900 text-sm">
+          {formatDate(appointment.date)}
+        </span>
+        <span className="font-semibold text-slate-700 text-sm">
+          {appointment.time}
+        </span>
       </div>
 
       <p className="text-slate-500 text-sm mt-1">₹{appointment.fee}</p>
 
       <div className="flex items-center gap-2 mt-4">
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_BADGE[appointment.status]}`}>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_BADGE[appointment.status]}`}
+        >
           {cap(appointment.status)}
         </span>
         <select
@@ -94,53 +116,72 @@ const PAGE_SIZE = 3;
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
-
-  const [doctorId, setDoctorId] = useState("");
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [updatingId, setUpdatingId] = useState(null);
+  const queryClient = useQueryClient();
   const [showAll, setShowAll] = useState(false);
+  const profileQ = useQuery({
+    queryKey: ["doctor-me"],
+    queryFn: async () => (await api.get("/doctor/me")).data.doctor,
+    staleTime: 5 * 60 * 1000,
+  });
+  const apptQ = useQuery({
+    queryKey: ["doctor-appointments"],
+    queryFn: async () =>
+      (await api.get("/appointments/doctor")).data.appointments,
+    staleTime: 30 * 1000,
+  });
 
-  const loadData = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [profileRes, appointmentsRes] = await Promise.all([
-        api.get("/doctor/me"),
-        api.get("/appointments/doctor"),
-      ]);
-      setDoctorId(profileRes.data.doctor._id);
-      setAppointments(appointmentsRes.data.appointments);
-    } catch {
-      setError("Could not load your dashboard. Please try again.");
-    } finally {
-      setLoading(false);
+  const doctorId = profileQ.data?._id || "";
+  const appointments = apptQ.data || [];
+  const loading = apptQ.isLoading;
+  const error = apptQ.isError
+    ? "Could not load your dashboard. Please try again."
+    : "";
+  const loadData = () => {
+    profileQ.refetch();
+    apptQ.refetch();
+  }; // Refresh button
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }) =>
+      api
+        .patch(`/appointments/${id}/status`, { status })
+        .then((r) => r.data.appointment),
+    onSuccess: (updated) =>
+      queryClient.setQueryData(["doctor-appointments"], (old = []) =>
+        old.map((a) => (a._id === updated._id ? updated : a)),
+      ),
+    onError: (err) =>
+      alert(err.response?.data?.message || "Could not update status"),
+  });
+  const handleStatusChange = useCallback(
+    (id, status) => statusMutation.mutate({ id, status }),
+    [],
+  ); // eslint-disable-line
+  const updatingId = statusMutation.isPending
+    ? statusMutation.variables?.id
+    : null;
+
+  // ek hi loop me teeno stats (pehle 3 baar loop chalta tha)
+  const { totalEarnings, completedCount, cancelledCount } = useMemo(() => {
+    let earnings = 0,
+      completed = 0,
+      cancelled = 0;
+    for (const a of appointments) {
+      if (a.status === "completed") completed++;
+      if (a.status === "cancelled") cancelled++;
+      else if (a.paymentStatus === "paid" || a.status === "completed")
+        earnings += Number(a.fee) || 0;
     }
-  };
+    return {
+      totalEarnings: earnings,
+      completedCount: completed,
+      cancelledCount: cancelled,
+    };
+  }, [appointments]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const handleStatusChange = async (id, status) => {
-    setUpdatingId(id);
-    try {
-      const res = await api.patch(`/appointments/${id}/status`, { status });
-      setAppointments((prev) => prev.map((a) => (a._id === id ? res.data.appointment : a)));
-    } catch (err) {
-      alert(err.response?.data?.message || "Could not update status");
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  // Earnings only count what's actually been paid, not just booked
-  const totalEarnings = appointments.filter((a) => a.paymentStatus === "paid").reduce((sum, a) => sum + a.fee, 0);
-  const completedCount = appointments.filter((a) => a.status === "completed").length;
-  const cancelledCount = appointments.filter((a) => a.status === "cancelled").length;
-
-  const visibleAppointments = showAll ? appointments : appointments.slice(0, PAGE_SIZE);
+  const visibleAppointments = showAll
+    ? appointments
+    : appointments.slice(0, PAGE_SIZE);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/70 to-white px-6 py-10">
@@ -150,10 +191,14 @@ const DoctorDashboard = () => {
             <h1 className="text-2xl font-bold text-teal-800 uppercase tracking-wide">
               {user?.name} — Dashboard
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Showing appointments for doctor {doctorId || "..."}</p>
+            <p className="text-sm text-slate-500 mt-1">
+              Showing appointments for doctor {doctorId || "..."}
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500">{appointments.length} total</span>
+            <span className="text-sm text-slate-500">
+              {appointments.length} total
+            </span>
             <button
               onClick={loadData}
               className="flex items-center gap-1.5 rounded-full border border-teal-200 px-4 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-50 transition-colors"
@@ -187,13 +232,22 @@ const DoctorDashboard = () => {
                 label="Completed"
                 value={completedCount}
               />
-              <StatCard icon={XCircle} iconBg="bg-rose-100 text-rose-700" label="Cancelled" value={cancelledCount} />
+              <StatCard
+                icon={XCircle}
+                iconBg="bg-rose-100 text-rose-700"
+                label="Cancelled"
+                value={cancelledCount}
+              />
             </div>
 
             <div className="rounded-3xl bg-white border border-teal-100 shadow-sm p-6">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-bold text-teal-800">Latest Appointments</h2>
-                <span className="text-sm text-slate-500">{appointments.length} total</span>
+                <h2 className="text-xl font-bold text-teal-800">
+                  Latest Appointments
+                </h2>
+                <span className="text-sm text-slate-500">
+                  {appointments.length} total
+                </span>
               </div>
 
               {appointments.length === 0 ? (

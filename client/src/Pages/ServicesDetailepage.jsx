@@ -3,10 +3,19 @@ import { Link, useParams } from "react-router-dom";
 import { Stethoscope, ListChecks, Phone, Check } from "lucide-react";
 import api from "../api/axios";
 import { useAuth } from "../Context/Authcontext";
-
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 // Services have no doctor-style schedule, so a generic set of clinic slots is
 // offered for every date — swap this for a real availability system later if needed.
-const TIME_SLOTS = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"];
+const TIME_SLOTS = [
+  "09:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "12:00 PM",
+  "02:00 PM",
+  "03:00 PM",
+  "04:00 PM",
+  "05:00 PM",
+];
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500";
@@ -25,10 +34,6 @@ const ServiceDetailepage = () => {
   const { id } = useParams();
   const { user } = useAuth();
 
-  const [service, setService] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-
   const [form, setForm] = useState(emptyForm);
   const [date, setDate] = useState(todayStr());
   const [time, setTime] = useState("");
@@ -38,21 +43,30 @@ const ServiceDetailepage = () => {
   const [error, setError] = useState("");
   const [booked, setBooked] = useState(null);
 
-  useEffect(() => {
-    const fetchService = async () => {
-      try {
-        const res = await api.get(`/services/${id}`);
-        setService(res.data.service);
-      } catch (err) {
-        setLoadError(err.response?.status === 404 ? "Service not found" : "Could not load this service");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchService();
-  }, [id]);
+  const queryClient = useQueryClient();
 
-  const setField = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const {
+    data: service,
+    isLoading: loading,
+    error: loadErr,
+  } = useQuery({
+    queryKey: ["service", id],
+    queryFn: async () => (await api.get(`/services/${id}`)).data.service,
+    // list se click karne par list ka data turant dikhao, peeche poori detail aa jaayegi
+    placeholderData: () =>
+      queryClient.getQueryData(["services"])?.find((s) => s._id === id),
+    staleTime: 10 * 60 * 1000,
+    retry: (count, err) => err.response?.status !== 404 && count < 1,
+  });
+
+  const loadError = loadErr
+    ? loadErr.response?.status === 404
+      ? "Service not found"
+      : "Could not load this service"
+    : "";
+
+  const setField = (field) => (e) =>
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const isPatient = user?.role === "patient";
   const ready = isPatient && date && time;
@@ -64,7 +78,6 @@ const ServiceDetailepage = () => {
 
     try {
       const res = await api.post("/appointments", {
-        
         serviceId: service._id,
         date,
         time,
@@ -77,7 +90,7 @@ const ServiceDetailepage = () => {
         },
         paymentMethod,
       });
-      clg("Appointment booked successfully:", res.data.appointment);
+
       setBooked(res.data.appointment);
     } catch (err) {
       setError(err.response?.data?.message || "Could not book this service");
@@ -86,8 +99,12 @@ const ServiceDetailepage = () => {
     }
   };
 
-  if (loading) return <p className="text-center text-slate-500 py-24">Loading service...</p>;
-  if (loadError) return <p className="text-center text-rose-600 py-24">{loadError}</p>;
+  if (loading)
+    return (
+      <p className="text-center text-slate-500 py-24">Loading service...</p>
+    );
+  if (loadError)
+    return <p className="text-center text-rose-600 py-24">{loadError}</p>;
 
   let hint = null;
   if (!user) {
@@ -112,7 +129,11 @@ const ServiceDetailepage = () => {
         {/* Left: image */}
         <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-teal-100 to-emerald-50 h-72 lg:h-full flex items-center justify-center">
           {service.image?.url ? (
-            <img src={service.image.url} alt={service.name} className="w-full h-full object-cover" />
+            <img
+              src={service.image.url}
+              alt={service.name}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <Stethoscope className="w-20 h-20 text-teal-500" />
           )}
@@ -128,7 +149,9 @@ const ServiceDetailepage = () => {
             <h3 className="flex items-center gap-2 font-bold text-teal-800 mb-2">
               <Stethoscope className="w-4 h-4" /> About This Service
             </h3>
-            <p className="text-sm text-slate-600 leading-relaxed">{service.description}</p>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              {service.description}
+            </p>
           </div>
 
           <span className="inline-block rounded-full bg-emerald-50 border border-emerald-200 px-5 py-2 text-lg font-bold text-emerald-700 mb-4">
@@ -153,22 +176,33 @@ const ServiceDetailepage = () => {
               <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
                 <Check className="w-6 h-6 text-emerald-600" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Booking confirmed</h3>
+              <h3 className="text-lg font-bold text-slate-900">
+                Booking confirmed
+              </h3>
               <p className="text-sm text-slate-600 mt-1">
                 {service.name} · {booked.date} · {booked.time}
               </p>
             </div>
           ) : (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
-              <h3 className="font-bold text-emerald-800 mb-3">Booking Summary</h3>
+              <h3 className="font-bold text-emerald-800 mb-3">
+                Booking Summary
+              </h3>
               <SummaryRow label="Name" value={form.fullName || "Not filled"} />
               <SummaryRow label="Mobile" value={form.mobile || "Not filled"} />
               <SummaryRow label="Age" value={form.age || "Not filled"} />
               <SummaryRow label="Gender" value={form.gender || "Not filled"} />
               <SummaryRow label="Date" value={date} />
               <SummaryRow label="Time" value={time || "Not selected"} />
-              <SummaryRow label="Payment" value={paymentMethod === "online" ? "Online" : "Cash"} />
-              <SummaryRow label="Price" value={`₹${service.price}`} valueClass="text-rose-600" />
+              <SummaryRow
+                label="Payment"
+                value={paymentMethod === "online" ? "Online" : "Cash"}
+              />
+              <SummaryRow
+                label="Price"
+                value={`₹${service.price}`}
+                valueClass="text-rose-600"
+              />
             </div>
           )}
         </div>
@@ -184,11 +218,20 @@ const ServiceDetailepage = () => {
 
             <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name *</label>
-                <input required value={form.fullName} onChange={setField("fullName")} className={inputClass} />
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Full Name *
+                </label>
+                <input
+                  required
+                  value={form.fullName}
+                  onChange={setField("fullName")}
+                  className={inputClass}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Mobile (10 digits) *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Mobile (10 digits) *
+                </label>
                 <input
                   required
                   inputMode="numeric"
@@ -200,12 +243,29 @@ const ServiceDetailepage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Age *</label>
-                <input required type="number" min="0" max="120" value={form.age} onChange={setField("age")} className={inputClass} />
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Age *
+                </label>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  max="120"
+                  value={form.age}
+                  onChange={setField("age")}
+                  className={inputClass}
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Gender *</label>
-                <select required value={form.gender} onChange={setField("gender")} className={inputClass}>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Gender *
+                </label>
+                <select
+                  required
+                  value={form.gender}
+                  onChange={setField("gender")}
+                  className={inputClass}
+                >
                   <option value="" disabled>
                     Select
                   </option>
@@ -215,7 +275,9 @@ const ServiceDetailepage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Date *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Date *
+                </label>
                 <input
                   required
                   type="date"
@@ -226,7 +288,9 @@ const ServiceDetailepage = () => {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Time *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Time *
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {TIME_SLOTS.map((slot) => (
                     <button
@@ -276,7 +340,11 @@ const ServiceDetailepage = () => {
                 {submitting ? "Booking..." : "Confirm Booking"}
               </button>
 
-              {hint && <p className="sm:col-span-2 text-xs text-slate-500 text-center">{hint}</p>}
+              {hint && (
+                <p className="sm:col-span-2 text-xs text-slate-500 text-center">
+                  {hint}
+                </p>
+              )}
             </form>
           </div>
         </div>
