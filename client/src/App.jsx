@@ -10,9 +10,9 @@ import ProtectedRoute from "./Components/ProtectedRoute";
 import Services from "./Pages/Services.jsx";
 import ServiceDetail from "./Pages/ServicesDetailepage.jsx";
 import Contact from "./Pages/ContactSection.jsx";
+import Profile from "./Pages/UserProfilepage.jsx";
 import "./index.css";
 import Layout from "./Components/Layout.jsx";
- 
 
 // Doctor panel
 import DoctorLayout from "./Components/Docter/DoctorLayout.jsx";
@@ -36,7 +36,6 @@ const router = createBrowserRouter([
       { path: "/doctor/dashboard", element: <DoctorDashboard /> },
       { path: "/doctor/appointments", element: <DoctorAppointments /> },
       { path: "/doctor/profile", element: <DoctorEditProfile /> },
-      
     ],
   },
 
@@ -70,6 +69,15 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={["patient"]}>
             <ServiceDetail />
+          </ProtectedRoute>
+        ),
+      },
+      // No allowedRoles here — any logged-in user (patient/doctor/receptionist/admin) can reach this
+      {
+        path: "/profile",
+        element: (
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         ),
       },

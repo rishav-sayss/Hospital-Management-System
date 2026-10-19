@@ -15,7 +15,7 @@ const NAV_LINKS = [
 const DASHBOARD_ROUTE = {
   admin: "/admin/dashboard",
   doctor: "/doctor/dashboard",
-  patient: "/patient/appointments",
+  patient: "/profile",
 };
 
 const Navbar = () => {
@@ -65,7 +65,7 @@ const Navbar = () => {
                 to={DASHBOARD_ROUTE[user.role] || "/"}
                 className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-slate-300 transition-colors"
               >
-                {user.name.split(" ")[0]}'s Dashboard
+                {user.name.split(" ")[0]} Dashboard
               </Link>
               <button
                 onClick={logout}

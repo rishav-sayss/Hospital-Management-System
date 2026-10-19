@@ -133,3 +133,51 @@ export const getMe = async (req, res) => {
     },
   });
 };
+
+// @route  PUT /api/auth/me
+// Any logged-in user updates their own name — the only account-level field
+// that's safe for every role (patient/doctor/receptionist/admin) to self-edit here
+export const updateMe = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+ 
+    const user = await User.findByIdAndUpdate(req.user._id, { name }, { new: true });
+ 
+    res.status(200).json({
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Could not update profile", error: err.message });
+  }
+};
+
+// @route  PUT /api/auth/me/password
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+ 
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new password are required" });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+ 
+    const user = await User.findById(req.user._id).select("+password");
+ 
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+ 
+    user.password = newPassword; // the pre-save hook hashes this automatically
+    await user.save();
+ 
+    res.status(200).json({ message: "Password updated" });
+  } catch (err) {
+    res.status(500).json({ message: "Could not change password", error: err.message });
+  }
+};
