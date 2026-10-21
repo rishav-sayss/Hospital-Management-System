@@ -4,3 +4,14 @@
 :root {
   font-family: "Plus Jakarta Sans", sans-serif;
 }
+
+/* Admin panel (light theme) */
+.a-input {
+  @apply w-full rounded-xl bg-white border border-emerald-200 px-4 py-3 text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition;
+}
+.a-btn {
+  @apply rounded-xl bg-emerald-600 px-6 py-3 font-semibold text-white hover:bg-emerald-700 transition disabled:opacity-50;
+}
+.a-card {
+  @apply bg-white rounded-3xl shadow-[0_10px_40px_rgba(16,185,129,0.12)] border border-emerald-100;
+}

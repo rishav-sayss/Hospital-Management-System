@@ -1,5 +1,5 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { AuthProvider } from "./Context/Authcontext";
+import { createBrowserRouter, RouterProvider ,Navigate } from "react-router-dom";
+import { AuthProvider } from "./Context/Authcontext.jsx";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import Home from "./Pages/Home";
@@ -13,6 +13,17 @@ import Contact from "./Pages/ContactSection.jsx";
 import Profile from "./Pages/UserProfilepage.jsx";
 import "./index.css";
 import Layout from "./Components/Layout.jsx";
+
+// Admin panel
+import AdminLayout from "./Pages/admin/AdminLayout.jsx";
+import AdminDashboard from "./Pages/admin/AdminDashboard.jsx";
+import AddDoctor from "./Components/admin/AddDoctor.jsx";
+import ListDoctors from "./Components/admin/ListDoctors.jsx";
+import AdminAppointments from "./Pages/admin/AdminAppointments.jsx";
+import ServiceDashboard from "./Pages/admin/ServiceDashboard.jsx";
+import AddService from "./Components/admin/AddService.jsx";
+import ListServices from "./Components/admin/ListServices.jsx";
+import ServiceAppointments from "./Pages/admin/ServiceAppointments.jsx";
 
 // Doctor panel
 import DoctorLayout from "./Components/Docter/DoctorLayout.jsx";
@@ -83,6 +94,30 @@ const router = createBrowserRouter([
       },
     ],
   },
+
+   // Admin-only area, URL: /admin/dashboard
+  {
+    path: "/admin",
+    element: (
+      <ProtectedRoute allowedRoles={["admin"]}>
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+      { path: "dashboard", element: <AdminDashboard /> },
+      { path: "add-doctor", element: <AddDoctor /> },
+      { path: "doctors", element: <ListDoctors /> },
+      { path: "appointments", element: <AdminAppointments /> },
+      { path: "service-dashboard", element: <ServiceDashboard /> },
+      { path: "add-service", element: <AddService /> },
+      { path: "services", element: <ListServices /> },
+      { path: "service-appointments", element: <ServiceAppointments /> },
+    ],
+  },
+
+ 
+
 ]);
 
 function App() {
