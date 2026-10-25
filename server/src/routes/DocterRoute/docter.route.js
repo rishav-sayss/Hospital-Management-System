@@ -14,6 +14,7 @@ import {
   getAvailableDates,
   getAvailableSlots,
   updateDoctorByAdmin,
+  adminCreateDoctor,
 } from "../../controllers/Docter.controller.js";
 
 const router = express.Router();
@@ -37,6 +38,7 @@ router.use("/me", me);
 
 
 // ---- Admin — manually set stats a doctor can't edit themselves ----
+router.post("/admin", adminOnly, upload.single("image"), adminCreateDoctor);
 router.put("/:id/admin", adminOnly, updateDoctorByAdmin);
 
 // ---- Public — patients browse doctors without logging in ---

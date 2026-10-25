@@ -5,27 +5,14 @@ import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/Users.Route/Auth.Routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
-import Adminroute from "./routes/AdminRoute/doctor.routes.js";
+import AdminRoute from "./routes/AdminRoute/AdminDeshboard.route.js";
 import serviceRoutes from "./routes/AdminRoute/service.route.js";
 import doctorRoutes from "./routes/DocterRoute/docter.route.js";
  
 
 const app = express();
 
-
-// app.use((req, res, next) => {
-//   const start = Date.now();
-
-//   res.on("finish", () => {
-//     const time = Date.now() - start;
-
-//     console.log(
-//       `${req.method} ${req.originalUrl} → ${res.statusCode} → ${time}ms`
-//     );
-//   });
-
-//   next();
-// });
+ 
 
 connectDB();
 
@@ -47,7 +34,7 @@ app.use("/api/doctor", doctorRoutes);
 
 
 //Admin routes
-app.use("/api/admin", Adminroute);
+app.use("/api/admin", AdminRoute);
 app.use("/api/services", serviceRoutes);
 
 app.get("/", (req, res) => {

@@ -27,6 +27,10 @@ export const addScheduleSlot = (date, time) =>
 export const deleteScheduleSlot = (date, time) =>
   api.delete(`/doctor/me/schedule/${date}/slots`, { data: { time } }).then((res) => res.data.schedule);
 
+
+// formData must be a FormData instance — axios sets the multipart header automatically
+export const adminCreateDoctor = (formData) => api.post("/doctors/admin", formData).then((res) => res.data.doctor);
+
 export const updateDoctorByAdmin = (doctorId, updates) =>
   api.put(`/doctor/${doctorId}/admin`, updates).then((res) => res.data.doctor);
 

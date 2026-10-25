@@ -320,3 +320,80 @@ export const updateDoctorByAdmin = async (req, res) => {
     res.status(500).json({ message: "Could not update doctor", error: err.message });
   }
 };
+
+
+// @route  POST /api/doctors/admin  (admin only)
+// Creates a doctor's User + Doctor profile in one shot — including an optional
+// photo, initial stats (rating/patients/success), and an initial schedule.
+// This replaces a hand-rolled createDoctor flow: the password is passed PLAIN
+// to User.create() so the User model's own pre-save hook hashes it — never
+// hash it again here, or login will fail (password gets hashed twice).
+export const adminCreateDoctor = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      specialization,
+      qualifications,
+      experience,
+      location,
+      about,
+      consultationFee,
+      rating,
+      totalPatients,
+      successRate,
+      isAvailable,
+      schedule, // JSON string: [{ date, slots: [{ time }] }] — multipart form-data can only carry strings
+    } = req.body;
+ 
+    if (!name || !email || !password || !specialization || consultationFee === undefined) {
+      return res.status(400).json({
+        message: "Name, email, password, specialization and consultation fee are required",
+      });
+    }
+ 
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email is already registered" });
+    }
+ 
+    const user = await User.create({ name, email, password, role: "doctor" });
+ 
+    let image;
+    if (req.file) {
+      const uploaded = await uploadBufferToCloudinary(req.file.buffer, "doctors");
+      image = { url: uploaded.url, publicId: uploaded.publicId };
+    }
+ 
+    let parsedSchedule = [];
+    if (schedule) {
+      try {
+        parsedSchedule = JSON.parse(schedule);
+      } catch {
+        parsedSchedule = [];
+      }
+    }
+ 
+    const doctor = await Doctor.create({
+      user: user._id,
+      specialization,
+      qualifications,
+      experience: Number(experience) || 0,
+      location,
+      about,
+      consultationFee: Number(consultationFee),
+      rating: rating !== undefined && rating !== "" ? Number(rating) : 0,
+      totalPatients: totalPatients !== undefined && totalPatients !== "" ? Number(totalPatients) : 0,
+      successRate: successRate !== undefined && successRate !== "" ? Number(successRate) : 0,
+      isAvailable: isAvailable === undefined ? true : isAvailable === "true" || isAvailable === true,
+      schedule: parsedSchedule,
+      image,
+    });
+ 
+    const populated = await Doctor.findById(doctor._id).populate("user", "name email");
+    res.status(201).json({ doctor: populated });
+  } catch (err) {
+    res.status(500).json({ message: "Could not create doctor", error: err.message });
+  }
+};

@@ -15,9 +15,9 @@ import "./index.css";
 import Layout from "./Components/Layout.jsx";
 
 // Admin panel
-import AdminLayout from "./Pages/admin/AdminLayout.jsx";
+import AdminLayout from "./Components/admin/AdminLayout.jsx";
 import AdminDashboard from "./Pages/admin/AdminDashboard.jsx";
-import AddDoctor from "./Components/admin/AddDoctor.jsx";
+import AdminAddDoctor from "./Pages/admin/AdminAddDoctor.jsx";
 import ListDoctors from "./Components/admin/ListDoctors.jsx";
 import AdminAppointments from "./Pages/admin/AdminAppointments.jsx";
 import ServiceDashboard from "./Pages/admin/ServiceDashboard.jsx";
@@ -95,24 +95,22 @@ const router = createBrowserRouter([
     ],
   },
 
-   // Admin-only area, URL: /admin/dashboard
+     // Admin-only area — its own navbar (AdminLayout)
   {
-    path: "/admin",
     element: (
       <ProtectedRoute allowedRoles={["admin"]}>
         <AdminLayout />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-      { path: "dashboard", element: <AdminDashboard /> },
-      { path: "add-doctor", element: <AddDoctor /> },
-      { path: "doctors", element: <ListDoctors /> },
-      { path: "appointments", element: <AdminAppointments /> },
-      { path: "service-dashboard", element: <ServiceDashboard /> },
-      { path: "add-service", element: <AddService /> },
-      { path: "services", element: <ListServices /> },
-      { path: "service-appointments", element: <ServiceAppointments /> },
+      { path: "/admin/dashboard", element: <AdminDashboard /> },
+      { path: "/admin/doctors/add", element: <AdminAddDoctor /> },
+      // { path: "/admin/doctors", element: <AdminListDoctors /> },             — build next
+      // { path: "/admin/appointments", element: <AdminAppointments /> },       — build next
+      // { path: "/admin/service-dashboard", element: <AdminServiceDashboard /> }, — build next
+      // { path: "/admin/services/add", element: <AdminAddService /> },         — build next
+      // { path: "/admin/services", element: <AdminListServices /> },           — build next
+      // { path: "/admin/service-appointments", element: <AdminServiceAppointments /> }, — build next
     ],
   },
 
