@@ -23,12 +23,10 @@ export const createAppointment = async (req, res) => {
       req.body;
 
     if ((!doctorId && !serviceId) || !date || !time || !patientDetails) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "doctorId or serviceId, date, time and patientDetails are required",
-        });
+      return res.status(400).json({
+        message:
+          "doctorId or serviceId, date, time and patientDetails are required",
+      });
     }
     if (doctorId && serviceId) {
       return res
@@ -85,12 +83,9 @@ export const createAppointment = async (req, res) => {
     );
 
     if (updateResult.matchedCount === 0) {
-      return res
-        .status(409)
-        .json({
-          message:
-            "This slot is not available (already booked or doesn't exist)",
-        });
+      return res.status(409).json({
+        message: "This slot is not available (already booked or doesn't exist)",
+      });
     }
 
     const appointment = await Appointment.create({
@@ -160,7 +155,7 @@ export const getMyAppointments = async (req, res) => {
     const appointments = await Appointment.find({ patient: req.user._id })
       .populate({ path: "doctor", populate: { path: "user", select: "name" } })
       .sort({ createdAt: -1 });
- 
+
     res.status(200).json({ appointments });
   } catch (err) {
     res
@@ -168,8 +163,6 @@ export const getMyAppointments = async (req, res) => {
       .json({ message: "Could not fetch appointments", error: err.message });
   }
 };
-
- 
 
 // @route  GET /api/appointments/doctor
 // The logged-in doctor's own list of appointments (all patients who booked them)
@@ -182,6 +175,14 @@ export const getDoctorAppointments = async (req, res) => {
 
     const appointments = await Appointment.find({ doctor: doctor._id })
       .populate("patient", "name email")
+      .populate({
+        path: "doctor",
+        select: "specialization",
+        populate: {
+          path: "user",
+          select: "name",
+        },
+      })
       .sort({ date: 1, time: 1 });
 
     res.status(200).json({ appointments });

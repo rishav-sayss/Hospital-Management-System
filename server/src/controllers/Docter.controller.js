@@ -397,3 +397,51 @@ export const adminCreateDoctor = async (req, res) => {
     res.status(500).json({ message: "Could not create doctor", error: err.message });
   }
 };
+
+
+// @route  DELETE /api/doctors/:id/admin  (admin only)
+// Removes the Doctor profile AND its linked User account — a full account
+// deletion, not a soft-deactivate. Appointment history referencing this doctor
+// stays in the DB but the doctor reference will no longer resolve to a profile.
+export const deleteDoctorByAdmin = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+ 
+    if (doctor.image?.publicId) {
+      await deleteFromCloudinary(doctor.image.publicId);
+    }
+ 
+    await Doctor.findByIdAndDelete(doctor._id);
+    await User.findByIdAndDelete(doctor.user);
+ 
+    res.status(200).json({ message: "Doctor deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Could not delete doctor", error: err.message });
+  }
+};
+
+
+// @route GET /api/doctors/admin
+// @access Admin
+// Get all doctors for admin panel
+export const adminGetDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find()
+      .populate("user", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      doctors,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Could not fetch doctors",
+      error: err.message,
+    });
+  }
+};
+
+

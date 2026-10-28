@@ -1,7 +1,7 @@
 import express from "express";
 import authenticate from "../middleware/Authmidelwere/Authenticate.js";
 import { authorizeRoles } from "../middleware/Authmidelwere/Authorize.js";
-import { createAppointment, getMyAppointments,getDoctorAppointments,updateAppointmentStatus,cancelAppointment } from "../controllers/appointment.controller.js";
+import { createAppointment, getMyAppointments,getDoctorAppointments,updateAppointmentStatus,cancelAppointment , getAllAppointments} from "../controllers/appointment.controller.js";
  
 
 
@@ -14,5 +14,6 @@ router.patch("/:id/cancel", authenticate, authorizeRoles("patient"), cancelAppoi
 // ---- Doctor routes ----
 router.get("/doctor", authenticate, authorizeRoles("doctor"), getDoctorAppointments);
 router.patch("/:id/status", authenticate, authorizeRoles("doctor"), updateAppointmentStatus);
+router.get("/", authenticate, authorizeRoles("admin"), getAllAppointments);
 
 export default router;

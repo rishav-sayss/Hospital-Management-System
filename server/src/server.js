@@ -5,7 +5,8 @@ import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/Users.Route/Auth.Routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
-import AdminRoute from "./routes/AdminRoute/AdminDeshboard.route.js";
+import Admindashboard from "./routes/AdminRoute/AdminDeshboard.route.js";
+import AdminDoctorRoute from "./routes/AdminRoute/doctor.routes.js";
 import serviceRoutes from "./routes/AdminRoute/service.route.js";
 import doctorRoutes from "./routes/DocterRoute/docter.route.js";
  
@@ -34,7 +35,8 @@ app.use("/api/doctor", doctorRoutes);
 
 
 //Admin routes
-app.use("/api/admin", AdminRoute);
+app.use("/api/admin", Admindashboard);
+app.use("/api/admin", AdminDoctorRoute);
 app.use("/api/services", serviceRoutes);
 
 app.get("/", (req, res) => {
