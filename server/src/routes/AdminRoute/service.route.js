@@ -8,17 +8,19 @@ import {
   getServiceById,
   updateService,
   deleteService,
+  getServicesOverview,
 } from "../../controllers/Admincontroller/Createservices.controller.js";
 
 const router = express.Router();
 
+// ---- Admin only — managing the service catalog ----
+router.post("/", authenticate, authorizeRoles("admin"),upload.single("image") ,createService);
+router.get("/Admin-Dashboard", authenticate, authorizeRoles("admin"),getServicesOverview);
+router.put("/:id", authenticate, authorizeRoles("admin"),upload.single("image") ,updateService);
+router.delete("/:id", authenticate, authorizeRoles("admin"), deleteService);
+
 // ---- Public — anyone can browse services ----
 router.get("/", getAllServices);
 router.get("/:id", getServiceById);
-
-// ---- Admin only — managing the service catalog ----
-router.post("/", authenticate, authorizeRoles("admin"),upload.single("image") ,createService);
-router.put("/:id", authenticate, authorizeRoles("admin"),upload.single("image") ,updateService);
-router.delete("/:id", authenticate, authorizeRoles("admin"), deleteService);
 
 export default router;

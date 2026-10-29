@@ -20,8 +20,8 @@ import AdminDashboard from "./Pages/admin/AdminDashboard.jsx";
 import AdminAddDoctor from "./Pages/admin/AdminAddDoctor.jsx";
 import AdminListDoctors  from "./Components/admin/ListDoctors.jsx";
 import AdminAppointments from "./Pages/admin/DoctorAppointments.jsx";
-import ServiceDashboard from "./Pages/admin/ServiceDashboard.jsx";
-import AddService from "./Components/admin/AddService.jsx";
+import AdminServiceDashboard from "./Pages/admin/AdminServiceDashboard.jsx";
+import AdminAddService from "./Pages/admin/Adminaddservices.jsx";
 import ListServices from "./Components/admin/ListServices.jsx";
 import ServiceAppointments from "./Pages/admin/ServiceAppointments.jsx";
 
@@ -107,8 +107,8 @@ const router = createBrowserRouter([
       { path: "/admin/doctors/add", element: <AdminAddDoctor /> },
       { path: "/admin/doctors", element: <AdminListDoctors /> },           
       { path: "/admin/appointments", element: <AdminAppointments/> },       
-      // { path: "/admin/service-dashboard", element: <AdminServiceDashboard /> }, — build next
-      // { path: "/admin/services/add", element: <AdminAddService /> },         — build next
+      { path: "/admin/service-dashboard", element: <AdminServiceDashboard /> },
+       { path: "/admin/services/add", element: <AdminAddService /> },       
       // { path: "/admin/services", element: <AdminListServices /> },           — build next
       // { path: "/admin/service-appointments", element: <AdminServiceAppointments /> }, — build next
     ],

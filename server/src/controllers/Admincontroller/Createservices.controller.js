@@ -1,5 +1,7 @@
 import Service from "../../models/Services.js";
+import Appointment from "../../models/Appointment.js";
 import { uploadBufferToCloudinary } from "../../config/UploadtoClaudinary.js";
+
 // @route  POST /api/services  (admin only)
 export const createService = async (req, res) => {
   try {
@@ -11,6 +13,17 @@ export const createService = async (req, res) => {
         .status(400)
         .json({ message: "Name, description and price are required" });
     }
+
+    let parsedInstructions = [];
+
+    if (preTestInstructions) {
+      try {
+        parsedInstructions = JSON.parse(preTestInstructions);
+      } catch {
+        parsedInstructions = [preTestInstructions];
+      }
+    }
+
     let image;
     if (req.file) {
       const uploaded = await uploadBufferToCloudinary(
@@ -113,5 +126,83 @@ export const deleteService = async (req, res) => {
     res
       .status(500)
       .json({ message: "Could not delete service", error: err.message });
+  }
+};
+
+//@route  GET /api/admin/services-overview
+// Feeds the "Service Dashboard" admin page: overall totals + a per-service
+// breakdown table. Same shape as the doctors-overview endpoint, but for services.
+export const getServicesOverview = async (req, res) => {
+  try {
+    const [services, serviceStats] = await Promise.all([
+      Service.find(),
+      Appointment.aggregate([
+        { $match: { service: { $ne: null } } },
+        {
+          $group: {
+            _id: "$service",
+            appointments: { $sum: 1 },
+            completed: {
+              $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+            },
+            cancelled: {
+              $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
+            },
+            // Earnings count only what was actually completed, not just booked
+            earning: {
+              $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$fee", 0] },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const statsByService = Object.fromEntries(
+      serviceStats.map((s) => [s._id.toString(), s]),
+    );
+
+    const serviceRows = services.map((svc) => {
+      const stats = statsByService[svc._id.toString()] || {
+        appointments: 0,
+        completed: 0,
+        cancelled: 0,
+        earning: 0,
+      };
+      return {
+        id: svc._id,
+        name: svc.name,
+        price: svc.price,
+        image: svc.image?.url || null,
+        appointments: stats.appointments,
+        completed: stats.completed,
+        cancelled: stats.cancelled,
+        earning: stats.earning,
+      };
+    });
+
+    const totals = serviceRows.reduce(
+      (acc, s) => ({
+        totalAppointments: acc.totalAppointments + s.appointments,
+        totalEarning: acc.totalEarning + s.earning,
+        completed: acc.completed + s.completed,
+        cancelled: acc.cancelled + s.cancelled,
+      }),
+      { totalAppointments: 0, totalEarning: 0, completed: 0, cancelled: 0 },
+    );
+
+    res
+      .status(200)
+      .json({
+        totalServices: services.length,
+        ...totals,
+        services: serviceRows,
+      });
+  } catch (err) {
+    res
+      .status(500)
+      .json({
+        message: "Could not fetch service dashboard overview",
+        error: err.message,
+      });
   }
 };

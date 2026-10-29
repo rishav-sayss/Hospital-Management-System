@@ -2,7 +2,6 @@ import api from "./axios";
 
 export const getDoctorsOverview = () => api.get("/admin/doctor-overview").then((res) => res.data);
 
-export const getServiceDashboardStats = () => api.get("/admin/service-dashboard").then((res) => res.data);
 
 export const getDoctors = async () => {
   const response = await api.get("/admin/doctors");
@@ -16,3 +15,9 @@ export const getDoctorAppointments = async () => {
 };
 
 export const deleteDoctorByAdmin = (doctorId) => api.delete(`/doctors/${doctorId}/admin`).then((res) => res.data);
+
+
+export const getServicesOverview = () => api.get("/services/Admin-Dashboard").then((res) => res.data);
+
+export const createService = (formData) =>
+  api.post("/services/", formData).then((res) => res.data);
