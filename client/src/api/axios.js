@@ -4,7 +4,7 @@ import axios from "axios";
 // accessToken/refreshToken cookies with every request — without this, the
 // backend's `authenticate` middleware will never see the user as logged in.
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
 });
 
@@ -20,7 +20,7 @@ api.interceptors.response.use(
 
       try {
         await axios.post(
-          "http://localhost:5000/api/auth/refresh",
+        `${import.meta.env.VITE_API_URL}/auth/refresh`,
           {},
           { withCredentials: true }
         );

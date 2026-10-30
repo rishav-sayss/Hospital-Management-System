@@ -23,7 +23,7 @@ export const useDoctorAppointments = () => {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Could not load appointments. Please try again."
+          "Could not load doctor appointments. Please try again."
       );
     } finally {
       setLoading(false);

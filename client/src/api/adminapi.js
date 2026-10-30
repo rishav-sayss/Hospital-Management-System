@@ -9,10 +9,10 @@ export const getDoctors = async () => {
 };
 
 export const getDoctorAppointments = async () => {
-  const response = await api.get("/appointments/");
-  console.log(response.data);
+  const response = await api.get("/appointments/admin/doctors");
   return response.data.appointments;
 };
+
 
 export const deleteDoctorByAdmin = (doctorId) =>
   api.delete(`/doctors/${doctorId}/admin`).then((res) => res.data);
@@ -38,3 +38,8 @@ export const setServiceActive = (id, isActive) =>
 
 export const deleteService = (id) =>
   api.delete(`/services/${id}`).then((res) => res.data);
+
+export const getServiceAppointments = async () => {
+  const response = await api.get("/appointments/admin/services");
+  return response.data.appointments;
+};

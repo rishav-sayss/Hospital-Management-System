@@ -23,7 +23,7 @@ import AdminAppointments from "./Pages/admin/DoctorAppointments.jsx";
 import AdminServiceDashboard from "./Pages/admin/AdminServiceDashboard.jsx";
 import AdminAddService from "./Pages/admin/Adminaddservices.jsx";
 import AdminListServices from "./Pages/admin/AdminListservices.jsx";
-import ServiceAppointments from "./Pages/admin/ServiceAppointments.jsx";
+import AdminServiceAppointments from "./Pages/admin/ServiceAppointments.jsx";
 
 // Doctor panel
 import DoctorLayout from "./Components/Docter/DoctorLayout.jsx";
@@ -110,7 +110,7 @@ const router = createBrowserRouter([
       { path: "/admin/service-dashboard", element: <AdminServiceDashboard /> },
       { path: "/admin/services/add", element: <AdminAddService /> },       
       { path: "/admin/services", element: <AdminListServices /> },           
-      // { path: "/admin/service-appointments", element: <AdminServiceAppointments /> }, — build next
+     { path: "/admin/service-appointments", element: <AdminServiceAppointments /> } 
     ],
   },
 

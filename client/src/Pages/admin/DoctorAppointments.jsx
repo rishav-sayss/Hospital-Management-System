@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 
 import AppointmentCard from "../../Components/admin/AppointmentCard.jsx";
-import { useDoctorAppointments } from "../../Hooks/Admin/usedoctorAppointment.js";
+import { useDoctorAppointments } from "../../Hooks/Admin/useDoctorAppointments.js";
 
 const DoctorAppointments = () => {
   const {

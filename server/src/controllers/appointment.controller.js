@@ -252,28 +252,50 @@ export const updateAppointmentStatus = async (req, res) => {
   }
 };
 
-// @route  GET /api/appointments/admin?type=doctor  → "Appointments" (doctor consultations)
-// @route  GET /api/appointments/admin?type=service → "Service Appointments"
-// @route  GET /api/appointments/admin              → everything
-// Admin-only — sees every appointment across every doctor/service, not just their own
-export const getAllAppointments = async (req, res) => {
+ 
+// GET /api/appointments/admin/doctors
+export const AdmingetDoctorAppointments = async (req, res) => {
   try {
-    const { type } = req.query;
-
-    const filter = {};
-    if (type === "doctor") filter.doctor = { $ne: null };
-    if (type === "service") filter.service = { $ne: null };
-
-    const appointments = await Appointment.find(filter)
+    const appointments = await Appointment.find({
+      doctor: { $ne: null },
+      service: null,
+    })
       .populate("patient", "name email")
-      .populate({ path: "doctor", populate: { path: "user", select: "name" } })
+      .populate({
+        path: "doctor",
+        populate: {
+          path: "user",
+          select: "name",
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ appointments });
+  } catch (err) {
+    res.status(500).json({
+      message: "Could not fetch doctor appointments",
+      error: err.message,
+    });
+  }
+};
+
+
+// GET /api/appointments/admin/services
+export const AdmingetServiceAppointments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({
+      service: { $ne: null },
+      doctor: null,
+    })
+      .populate("patient", "name email")
       .populate("service", "name price")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ appointments });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Could not fetch appointments", error: err.message });
+    res.status(500).json({
+      message: "Could not fetch service appointments",
+      error: err.message,
+    });
   }
 };
