@@ -9,6 +9,7 @@ import {
   updateService,
   deleteService,
   getServicesOverview,
+  getAllServicesAdmin
 } from "../../controllers/Admincontroller/Createservices.controller.js";
 
 const router = express.Router();
@@ -18,7 +19,8 @@ router.post("/", authenticate, authorizeRoles("admin"),upload.single("image") ,c
 router.get("/Admin-Dashboard", authenticate, authorizeRoles("admin"),getServicesOverview);
 router.put("/:id", authenticate, authorizeRoles("admin"),upload.single("image") ,updateService);
 router.delete("/:id", authenticate, authorizeRoles("admin"), deleteService);
-
+// Must stay above "/:id" so "admin" isn't mistaken for a service id
+router.get("/admin/all", authenticate, authorizeRoles("admin"), getAllServicesAdmin);
 // ---- Public — anyone can browse services ----
 router.get("/", getAllServices);
 router.get("/:id", getServiceById);

@@ -80,32 +80,30 @@ export const getServiceById = async (req, res) => {
 // @route  PUT /api/services/:id  (admin only)
 export const updateService = async (req, res) => {
   try {
-    const editableFields = [
-      "name",
-      "description",
-      "price",
-      "preTestInstructions",
-      "category",
-      "isActive",
-    ];
-
+    const editableFields = ["name", "description", "price", "preTestInstructions", "category", "isActive"];
+ 
     const service = await Service.findById(req.params.id);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
     }
-
+ 
     editableFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         service[field] = req.body[field];
       }
     });
-
+ 
+    // If a new image was sent, remove the old one from Cloudinary before saving the new one
+    if (req.file) {
+      await deleteFromCloudinary(service.image?.publicId);
+      const uploaded = await uploadBufferToCloudinary(req.file.buffer, "services");
+      service.image = { url: uploaded.url, publicId: uploaded.publicId };
+    }
+ 
     await service.save();
     res.status(200).json({ service });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Could not update service", error: err.message });
+    res.status(500).json({ message: "Could not update service", error: err.message });
   }
 };
 
@@ -204,5 +202,19 @@ export const getServicesOverview = async (req, res) => {
         message: "Could not fetch service dashboard overview",
         error: err.message,
       });
+  }
+};
+
+
+// @route  GET /api/services/admin/all  (admin only)
+// Same as the public list, but it also returns deactivated services. The public
+// endpoint hides those on purpose, so it can't power the admin's "Unavailable"
+// filter or let the admin restore a removed service.
+export const getAllServicesAdmin = async (req, res) => {
+  try {
+    const services = await Service.find().sort({ createdAt: -1 });
+    res.status(200).json({ services });
+  } catch (err) {
+    res.status(500).json({ message: "Could not fetch services", error: err.message });
   }
 };
