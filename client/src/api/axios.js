@@ -4,7 +4,7 @@ import axios from "axios";
 // accessToken/refreshToken cookies with every request — without this, the
 // backend's `authenticate` middleware will never see the user as logged in.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.SERVER_API_URL,
   withCredentials: true,
 });
 
