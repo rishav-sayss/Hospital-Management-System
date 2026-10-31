@@ -25,10 +25,9 @@ import AdminAddDoctor from "./Pages/admin/AdminAddDoctor.jsx";
 import AdminListDoctors from "./Components/admin/ListDoctors.jsx";
 import AdminAppointments from "./Pages/admin/DoctorAppointments.jsx";
 import AdminServiceDashboard from "./Pages/admin/AdminServiceDashboard.jsx";
-// import AdminAddService from "./Pages/admin/Adminaddservices.jsx";
 import AdminListServices from "./Pages/admin/AdminListservices.jsx";
 import AdminServiceAppointments from "./Pages/admin/ServiceAppointments.jsx";
-import AdminServiceForm from "./pages/admin/AdminServiceForm";
+import AdminServiceForm from "./Pages/admin/Adminserviceform.jsx";
 
 // Doctor panel
 import DoctorLayout from "./Components/Docter/DoctorLayout.jsx";
