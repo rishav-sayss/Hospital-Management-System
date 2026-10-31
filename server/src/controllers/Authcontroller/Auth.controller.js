@@ -5,7 +5,7 @@ import {
   generateRefreshToken,
   hashToken,
 } from "../../utils/generateTokens.js";
-import { setAuthCookies, clearAuthCookies } from "../../utils/tokenCookie.js";
+import { setAuthCookies, clearAuthCookies } from "../../utils/TokenCookie.js";
 
  
 

@@ -1,4 +1,8 @@
-import { createBrowserRouter, RouterProvider ,Navigate } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import { AuthProvider } from "./Context/Authcontext.jsx";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
@@ -18,12 +22,13 @@ import Layout from "./Components/Layout.jsx";
 import AdminLayout from "./Components/admin/AdminLayout.jsx";
 import AdminDashboard from "./Pages/admin/AdminDashboard.jsx";
 import AdminAddDoctor from "./Pages/admin/AdminAddDoctor.jsx";
-import AdminListDoctors  from "./Components/admin/ListDoctors.jsx";
+import AdminListDoctors from "./Components/admin/ListDoctors.jsx";
 import AdminAppointments from "./Pages/admin/DoctorAppointments.jsx";
 import AdminServiceDashboard from "./Pages/admin/AdminServiceDashboard.jsx";
-import AdminAddService from "./Pages/admin/Adminaddservices.jsx";
+// import AdminAddService from "./Pages/admin/Adminaddservices.jsx";
 import AdminListServices from "./Pages/admin/AdminListservices.jsx";
 import AdminServiceAppointments from "./Pages/admin/ServiceAppointments.jsx";
+import AdminServiceForm from "./pages/admin/AdminServiceForm";
 
 // Doctor panel
 import DoctorLayout from "./Components/Docter/DoctorLayout.jsx";
@@ -95,7 +100,7 @@ const router = createBrowserRouter([
     ],
   },
 
-     // Admin-only area — its own navbar (AdminLayout)
+  // Admin-only area — its own navbar (AdminLayout)
   {
     element: (
       <ProtectedRoute allowedRoles={["admin"]}>
@@ -105,17 +110,19 @@ const router = createBrowserRouter([
     children: [
       { path: "/admin/dashboard", element: <AdminDashboard /> },
       { path: "/admin/doctors/add", element: <AdminAddDoctor /> },
-      { path: "/admin/doctors", element: <AdminListDoctors /> },           
-      { path: "/admin/appointments", element: <AdminAppointments/> },       
+      { path: "/admin/doctors", element: <AdminListDoctors /> },
+      { path: "/admin/appointments", element: <AdminAppointments /> },
       { path: "/admin/service-dashboard", element: <AdminServiceDashboard /> },
-      { path: "/admin/services/add", element: <AdminAddService /> },       
-      { path: "/admin/services", element: <AdminListServices /> },           
-     { path: "/admin/service-appointments", element: <AdminServiceAppointments /> } 
+      // Same form for both — Add starts empty, Edit loads the service by :id
+      { path: "/admin/services/add", element: <AdminServiceForm key="add" /> },
+      { path: "/admin/services/:id", element: <AdminServiceForm key="edit" /> },
+      { path: "/admin/services", element: <AdminListServices /> },
+      {
+        path: "/admin/service-appointments",
+        element: <AdminServiceAppointments />,
+      },
     ],
   },
-
- 
-
 ]);
 
 function App() {

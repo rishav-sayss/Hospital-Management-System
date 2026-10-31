@@ -2,6 +2,17 @@ import Service from "../../models/Services.js";
 import Appointment from "../../models/Appointment.js";
 import { uploadBufferToCloudinary } from "../../config/UploadtoClaudinary.js";
 
+const parseInstructions = (value) => {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [String(parsed)];
+  } catch {
+    return [value];
+  }
+};
+
 // @route  POST /api/services  (admin only)
 export const createService = async (req, res) => {
   try {
@@ -14,16 +25,6 @@ export const createService = async (req, res) => {
         .json({ message: "Name, description and price are required" });
     }
 
-    let parsedInstructions = [];
-
-    if (preTestInstructions) {
-      try {
-        parsedInstructions = JSON.parse(preTestInstructions);
-      } catch {
-        parsedInstructions = [preTestInstructions];
-      }
-    }
-
     let image;
     if (req.file) {
       const uploaded = await uploadBufferToCloudinary(
@@ -32,11 +33,12 @@ export const createService = async (req, res) => {
       );
       image = { url: uploaded.url, publicId: uploaded.publicId };
     }
+
     const service = await Service.create({
       name,
       description,
       price,
-      preTestInstructions,
+      preTestInstructions: parseInstructions(preTestInstructions),
       category,
       image,
     });
@@ -80,30 +82,44 @@ export const getServiceById = async (req, res) => {
 // @route  PUT /api/services/:id  (admin only)
 export const updateService = async (req, res) => {
   try {
-    const editableFields = ["name", "description", "price", "preTestInstructions", "category", "isActive"];
- 
+    const editableFields = [
+      "name",
+      "description",
+      "price",
+      "category",
+      "isActive",
+    ];
+
     const service = await Service.findById(req.params.id);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
     }
- 
+
     editableFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         service[field] = req.body[field];
       }
     });
- 
+
+    const instructions = parseInstructions(req.body.preTestInstructions);
+    if (instructions !== undefined) service.preTestInstructions = instructions;
+
     // If a new image was sent, remove the old one from Cloudinary before saving the new one
     if (req.file) {
       await deleteFromCloudinary(service.image?.publicId);
-      const uploaded = await uploadBufferToCloudinary(req.file.buffer, "services");
+      const uploaded = await uploadBufferToCloudinary(
+        req.file.buffer,
+        "services",
+      );
       service.image = { url: uploaded.url, publicId: uploaded.publicId };
     }
- 
+
     await service.save();
     res.status(200).json({ service });
   } catch (err) {
-    res.status(500).json({ message: "Could not update service", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not update service", error: err.message });
   }
 };
 
@@ -188,23 +204,18 @@ export const getServicesOverview = async (req, res) => {
       { totalAppointments: 0, totalEarning: 0, completed: 0, cancelled: 0 },
     );
 
-    res
-      .status(200)
-      .json({
-        totalServices: services.length,
-        ...totals,
-        services: serviceRows,
-      });
+    res.status(200).json({
+      totalServices: services.length,
+      ...totals,
+      services: serviceRows,
+    });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        message: "Could not fetch service dashboard overview",
-        error: err.message,
-      });
+    res.status(500).json({
+      message: "Could not fetch service dashboard overview",
+      error: err.message,
+    });
   }
 };
-
 
 // @route  GET /api/services/admin/all  (admin only)
 // Same as the public list, but it also returns deactivated services. The public
@@ -215,6 +226,8 @@ export const getAllServicesAdmin = async (req, res) => {
     const services = await Service.find().sort({ createdAt: -1 });
     res.status(200).json({ services });
   } catch (err) {
-    res.status(500).json({ message: "Could not fetch services", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Could not fetch services", error: err.message });
   }
 };

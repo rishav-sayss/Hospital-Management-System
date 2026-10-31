@@ -21,18 +21,18 @@ export const getServicesOverview = () =>
   api.get("/services/Admin-Dashboard").then((res) => res.data);
 
 export const createService = (formData) =>
-  api.post("/services/", formData).then((res) => res.data);
+  api.post("/services", formData).then((res) => res.data.service);
+ 
+
+export const getServiceById = (id) => api.get(`/services/${id}`).then((res) => res.data.service);
 
 export const updateService = (id, formData) =>
-  api
-    .put(`/services/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-    .then((res) => res.data.service);
+  api.put(`/services/${id}`, formData).then((res) => res.data.service);
 
 // Includes deactivated services too (the public getAllServices hides them)
 export const getAllServicesAdmin = () =>
   api.get("/services/admin/all").then((res) => res.data.services);
+
 export const setServiceActive = (id, isActive) =>
   api.put(`/services/${id}`, { isActive }).then((res) => res.data.service);
 
