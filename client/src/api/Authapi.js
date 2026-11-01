@@ -1,4 +1,4 @@
-import api from "./axios";
+import api from "../api/axios.js";
  
 export const updateMeRequest = (name) => api.put("/auth/me", { name }).then((res) => res.data);
 

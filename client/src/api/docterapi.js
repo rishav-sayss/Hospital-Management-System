@@ -1,4 +1,4 @@
-import api from "./axios";
+import api from "../api/axios.js";
 
 // ---- Public ----
 export const getAllDoctors = () => api.get("/doctor").then((res) => res.data.doctors);
