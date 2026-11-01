@@ -10,16 +10,27 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    const url = originalRequest.url || "";
+
+    // Don't refresh tokens for authentication endpoints
+    const isAuthRequest =
+      url.includes("/auth/login") ||
+      url.includes("/auth/register") ||
+      url.includes("/auth/refresh");
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthRequest
+    ) {
       originalRequest._retry = true;
 
       try {
-        await axios.post(
-          `${import.meta.env.VITE_SERVER_API_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
-
+        await api.post("/auth/refresh");
         return api(originalRequest);
       } catch (refreshError) {
         return Promise.reject(refreshError);
