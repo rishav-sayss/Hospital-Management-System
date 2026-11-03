@@ -13,7 +13,7 @@ import { setAuthCookies, clearAuthCookies } from "../../utils/TokenCookie.js";
 export const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-
+    console.log(role);
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
     }
@@ -23,7 +23,7 @@ export const register = async (req, res) => {
       return res.status(409).json({ message: "Email is already registered" });
     }
 
-    const allowedRoles = ["admin", "doctor", "patient", "receptionist"];
+    const allowedRoles = ["patient","admin",];
     const finalRole = allowedRoles.includes(role) ? role : "patient";
 
     const user = await User.create({ name, email, password, role: finalRole });
