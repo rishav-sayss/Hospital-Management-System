@@ -7,8 +7,7 @@ import AuthLayout from "../Components/AuthLayout";
 // admin panel's own flow, not self-registration
 const ROLES = [
   { value: "patient", label: "Patient" },
-  { value: "doctor", label: "Doctor" },
-  { value: "receptionist", label: "Receptionist" },
+  { value: "doctor", label: "Admin" },
 ];
 
 const Register = () => {
